@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS
+CG_TOOL_ROOT := D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -17,7 +17,7 @@ ORDERED_OBJS += \
 "./uart.o" \
 "../project0_ccs.cmd" \
 $(GEN_CMDS__FLAG) \
--Wl,-l"C:/TI/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib" \
+-Wl,-l"C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib" \
 -Wl,-llibc.a \
 -Wl,-l"D:/ti/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib" \
 
@@ -133,7 +133,7 @@ all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Tool invocations
 project0.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Arm Linker - building target: "$@"'
-	"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/bin/tiarmclang.exe" -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mlittle-endian -mthumb -DPART_TM4C123GH6PM -Wall -fdata-sections -ffunction-sections -Wl,-m"project0_ccs.map" -Wl,--stack_size=256 -Wl,-i"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib" -Wl,-i"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include" -Wl,--reread_libs -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="project0_linkInfo.xml" -Wl,--rom_model -o "project0.out" $(ORDERED_OBJS)
+	"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/bin/tiarmclang.exe" -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mlittle-endian -mthumb -DPART_TM4C123GH6PM -Wall -fdata-sections -ffunction-sections -Wl,-m"project0_ccs.map" -Wl,--stack_size=256 -Wl,-i"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib" -Wl,-i"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include" -Wl,--reread_libs -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="project0_linkInfo.xml" -Wl,--rom_model -o "project0.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
@@ -146,7 +146,7 @@ clean:
 	-@echo ' '
 
 post-build:
-	-"D:/ti/ccs2100/ccs//utils/tiobj2bin/tiobj2bin" "project0.out" "project0.bin" "D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/bin/armofd" "D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/bin/armhex" "D:/ti/ccs2100/ccs//utils/tiobj2bin/mkhex4bin"
+	-"D:/css/ccs//utils/tiobj2bin/tiobj2bin" "project0.out" "project0.bin" "D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/bin/armofd" "D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/bin/armhex" "D:/css/ccs//utils/tiobj2bin/mkhex4bin"
 	-@echo ' '
 
 .PHONY: all clean dependents
