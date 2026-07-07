@@ -1,0 +1,82 @@
+#include "uart.h"
+#include "tm4c123gh6pm.h"
+
+void UART0_Init(void)
+{
+    //-------------------------------------------------
+    // 1. Enable clock
+    //-------------------------------------------------
+    SYSCTL_RCGCUART_R |= (1 << 0);     // UART0 Clock
+    SYSCTL_RCGCGPIO_R |= (1 << 0);     // GPIOA Clock
+
+    //-------------------------------------------------
+    // 2. Wait until peripherals are ready
+    //-------------------------------------------------
+    while((SYSCTL_PRUART_R & (1 << 0)) == 0);
+    while((SYSCTL_PRGPIO_R & (1 << 0)) == 0);
+
+    //-------------------------------------------------
+    // 3. Disable UART before configuration
+    //-------------------------------------------------
+    UART0_CTL_R &= ~(1 << 0);
+
+    //-------------------------------------------------
+    // 4. Configure Baud Rate
+    // System Clock = 16 MHz
+    // Baud Rate = 115200
+    //
+    // BRD = 16,000,000 / (16 × 115200)
+    //     = 8.6805
+    //
+    // IBRD = 8
+    // FBRD = 44
+    //-------------------------------------------------
+    UART0_IBRD_R = 8;
+    UART0_FBRD_R = 44;
+
+    //-------------------------------------------------
+    // 5. Configure Line Control
+    // 8-bit
+    // No parity
+    // 1 stop bit
+    // Enable FIFO
+    //-------------------------------------------------
+    UART0_LCRH_R = (0x3 << 5) | (1 << 4);
+    // = 0x70
+
+    //-------------------------------------------------
+    // 6. Select System Clock
+    //-------------------------------------------------
+    UART0_CC_R = 0x0;
+
+    //-------------------------------------------------
+    // 7. Configure GPIOA
+    // PA0 -> U0RX
+    // PA1 -> U0TX
+    //-------------------------------------------------
+
+    // Enable Alternate Function
+    GPIO_PORTA_AFSEL_R |= 0x03;
+
+    // Enable Digital Function
+    GPIO_PORTA_DEN_R |= 0x03;
+
+    // Disable Analog Function
+    GPIO_PORTA_AMSEL_R &= ~0x03;
+
+    // Enable UART function on PA0 PA1
+    GPIO_PORTA_PCTL_R &= ~0x000000FF;
+    GPIO_PORTA_PCTL_R |=  0x00000011;
+
+    //-------------------------------------------------
+    // 8. Enable UART0
+    //-------------------------------------------------
+    UART0_CTL_R |= (1 << 0) |   // UART Enable
+                   (1 << 8) |   // TX Enable
+                   (1 << 9);    // RX Enable
+}
+
+void UART0_WriteChar(char c){
+    while (UART0_FR_R & (1 << 5));
+    UART0_DR_R = c;
+}

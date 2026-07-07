@@ -1,0 +1,27 @@
+[
+   {
+      "directory" : "D:/CCStudio_Workspace/project0/Debug",
+      "command"   : "clang++ -I\"C:/ti/TivaWare_C_Series-2.2.0.295\" -I\"C:/ti/TivaWare_C_Series-2.2.0.295/inc\" -DPART_TM4C123GH6PM -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/armv7em-ti-none-eabihf/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib/clang/22/include\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c\" -xc",
+      "file"      : "D:/CCStudio_Workspace/project0/gpio.c"
+   },
+   {
+      "directory" : "D:/CCStudio_Workspace/project0/Debug",
+      "command"   : "clang++ -I\"D:/ti/TivaWare_C_Series-2.2.0.295/driverlib\" -I\"D:/ti/TivaWare_C_Series-2.2.0.295\" -I\"D:/ti/TivaWare_C_Series-2.2.0.295/inc\" -DPART_TM4C123GH6PM -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/armv7em-ti-none-eabihf/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib/clang/22/include\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c\" -xc",
+      "file"      : "D:/CCStudio_Workspace/project0/main.c"
+   },
+   {
+      "directory" : "D:/CCStudio_Workspace/project0/Debug",
+      "command"   : "clang++ -I\"C:/ti/TivaWare_C_Series-2.2.0.295\" -I\"C:/ti/TivaWare_C_Series-2.2.0.295/inc\" -DPART_TM4C123GH6PM -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/armv7em-ti-none-eabihf/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib/clang/22/include\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c\" -xc",
+      "file"      : "D:/CCStudio_Workspace/project0/startup_ccs.c"
+   },
+   {
+      "directory" : "D:/CCStudio_Workspace/project0/Debug",
+      "command"   : "clang++ -I\"C:/ti/TivaWare_C_Series-2.2.0.295\" -I\"C:/ti/TivaWare_C_Series-2.2.0.295/inc\" -DPART_TM4C123GH6PM -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/armv7em-ti-none-eabihf/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib/clang/22/include\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c\" -xc",
+      "file"      : "D:/CCStudio_Workspace/project0/state.c"
+   },
+   {
+      "directory" : "D:/CCStudio_Workspace/project0/Debug",
+      "command"   : "clang++ -I\"C:/ti/TivaWare_C_Series-2.2.0.295\" -I\"C:/ti/TivaWare_C_Series-2.2.0.295/inc\" -DPART_TM4C123GH6PM -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/armv7em-ti-none-eabihf/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib/clang/22/include\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c\" -xc",
+      "file"      : "D:/CCStudio_Workspace/project0/uart.c"
+   }
+]

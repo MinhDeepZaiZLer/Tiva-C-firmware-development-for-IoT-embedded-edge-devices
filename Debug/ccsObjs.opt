@@ -1,0 +1,9 @@
+"./gpio.o"
+"./main.o"
+"./startup_ccs.o"
+"./state.o"
+"./uart.o"
+"../project0_ccs.cmd"
+-l"C:/TI/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib"
+-llibc.a
+-l"D:/ti/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib"

@@ -1,0 +1,241 @@
+******************************************************************************
+            TI ARM Clang Linker PC v5.1.1                      
+******************************************************************************
+>> Linked Fri Jul  3 10:00:20 2026
+
+OUTPUT FILE NAME:   <project0.out>
+ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 000006c1
+
+
+MEMORY CONFIGURATION
+
+         name            origin    length      used     unused   attr    fill
+----------------------  --------  ---------  --------  --------  ----  --------
+  FLASH                 00000000   00040000  000007b8  0003f848  R  X
+  SRAM                  20000000   00008000  00000103  00007efd  RW X
+
+
+SEGMENT ALLOCATION MAP
+
+run origin  load origin   length   init length attrs members
+----------  ----------- ---------- ----------- ----- -------
+00000000    00000000    000007b8   000007b8    r-x
+  00000000    00000000    0000026c   0000026c    r-- .intvecs
+  0000026c    0000026c    00000538   00000538    r-x .text
+  000007a4    000007a4    00000014   00000014    r-- .cinit
+20000000    20000000    00000103   00000000    rw-
+  20000000    20000000    00000100   00000000    rw- .stack
+  20000100    20000100    00000003   00000000    rw- .bss
+
+
+SECTION ALLOCATION MAP
+
+ output                                  attributes/
+section   page    origin      length       input sections
+--------  ----  ----------  ----------   ----------------
+.intvecs   0    00000000    0000026c     
+                  00000000    0000026c     startup_ccs.o (.intvecs)
+
+.text      0    0000026c    00000538     
+                  0000026c    0000018e     state.o (.text.StateMachine_Run)
+                  000003fa    00000002     --HOLE-- [fill = 0]
+                  000003fc    000000f4     driverlib.lib : sysctl.obj (.text:SysCtlClockSet)
+                  000004f0    000000dc     uart.o (.text.UART0_Init)
+                  000005cc    00000082     gpio.o (.text.PortF_Init)
+                  0000064e    0000003a     main.o (.text.main)
+                  00000688    00000038     libc.a : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit)
+                  000006c0    00000034            : boot_cortex_m.c.obj (.text:_c_int00_noargs)
+                  000006f4    0000002e     uart.o (.text.UART0_WriteChar)
+                  00000722    00000026     gpio.o (.text.Button_Read)
+                  00000748    00000024     gpio.o (.text.LED_Set)
+                  0000076c    00000012     libc.a : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset)
+                  0000077e    00000006     startup_ccs.o (.text.ResetISR)
+                  00000784    00000006     driverlib.lib : sysctl.obj (.text:SysCtlDelay)
+                  0000078a    00000006     libc.a : exit.c.obj (.text:abort)
+                  00000790    00000004     startup_ccs.o (.text.FaultISR)
+                  00000794    00000004     libsysbm.a : hostexit.c.obj (.text.HOSTexit)
+                  00000798    00000004     startup_ccs.o (.text.IntDefaultHandler)
+                  0000079c    00000004     startup_ccs.o (.text.NmiSR)
+                  000007a0    00000004     libc.a : pre_init.c.obj (.text._system_pre_init)
+
+.cinit     0    000007a4    00000014     
+                  000007a4    00000008     (.cinit..bss.load) [load image, compression = zero_init]
+                  000007ac    00000004     (__TI_handler_table)
+                  000007b0    00000008     (__TI_cinit_table)
+
+.init_array 
+*          0    00000000    00000000     UNINITIALIZED
+
+.bss       0    20000100    00000003     UNINITIALIZED
+                  20000100    00000003     (.common:system)
+
+.stack     0    20000000    00000100     UNINITIALIZED
+                  20000000    00000004     libc.a : boot_cortex_m.c.obj (.stack)
+                  20000004    000000fc     --HOLE--
+
+__llvm_prf_cnts 
+*          0    20000000    00000000     UNINITIALIZED
+
+__llvm_prf_bits 
+*          0    20000000    00000000     UNINITIALIZED
+
+MODULE SUMMARY
+
+       Module                 code   ro data   rw data
+       ------                 ----   -------   -------
+    .\
+       startup_ccs.o          18     620       0      
+       state.o                398    0         0      
+       uart.o                 266    0         0      
+       gpio.o                 204    0         0      
+       main.o                 58     0         3      
+    +--+----------------------+------+---------+---------+
+       Total:                 944    620       3      
+                                                      
+    C:/TI/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib
+       sysctl.obj             250    0         0      
+    +--+----------------------+------+---------+---------+
+       Total:                 250    0         0      
+                                                      
+    D:\ti\ccs2100\ccs\tools\compiler\ti-cgt-armllvm_5.1.1.LTS\lib\armv7em-ti-none-eabihf/c/libc.a
+       autoinit.c.obj         56     0         0      
+       boot_cortex_m.c.obj    52     0         0      
+       copy_zero_init.c.obj   18     0         0      
+       exit.c.obj             6      0         0      
+       pre_init.c.obj         4      0         0      
+    +--+----------------------+------+---------+---------+
+       Total:                 136    0         0      
+                                                      
+    D:\ti\ccs2100\ccs\tools\compiler\ti-cgt-armllvm_5.1.1.LTS\lib\armv7em-ti-none-eabihf/c/libsysbm.a
+       hostexit.c.obj         4      0         0      
+    +--+----------------------+------+---------+---------+
+       Total:                 4      0         0      
+                                                      
+       Stack:                 0      0         256    
+       Linker Generated:      0      20        0      
+    +--+----------------------+------+---------+---------+
+       Grand Total:           1334   640       259    
+
+
+LINKER GENERATED COPY TABLES
+
+__TI_cinit_table @ 000007b0 records: 1, size/record: 8, table size: 8
+	.bss: load addr=000007a4, load size=00000008 bytes, run addr=20000100, run size=00000003 bytes, compression=zero_init
+
+
+LINKER GENERATED HANDLER TABLE
+
+__TI_handler_table @ 000007ac records: 1, size/record: 4, table size: 4
+	index: 0, handler: __TI_zero_init
+
+
+GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
+
+address   name                          
+-------   ----                          
+00000723  Button_Read                   
+00000794  C$$EXIT                       
+00000795  HOSTexit                      
+00000749  LED_Set                       
+000005cd  PortF_Init                    
+0000077f  ResetISR                      
+0000026d  StateMachine_Run              
+000003fd  SysCtlClockSet                
+00000785  SysCtlDelay                   
+000004f1  UART0_Init                    
+000006f5  UART0_WriteChar               
+20000100  __STACK_END                   
+00000100  __STACK_SIZE                  
+20000100  __STACK_TOP                   
+00000000  __TI_ATRegion0_region_sz      
+00000000  __TI_ATRegion0_src_addr       
+00000000  __TI_ATRegion0_trg_addr       
+00000000  __TI_ATRegion1_region_sz      
+00000000  __TI_ATRegion1_src_addr       
+00000000  __TI_ATRegion1_trg_addr       
+00000000  __TI_ATRegion2_region_sz      
+00000000  __TI_ATRegion2_src_addr       
+00000000  __TI_ATRegion2_trg_addr       
+000007b0  __TI_CINIT_Base               
+000007b8  __TI_CINIT_Limit              
+000007b8  __TI_CINIT_Warm               
+000007ac  __TI_Handler_Table_Base       
+000007b0  __TI_Handler_Table_Limit      
+00000689  __TI_auto_init_nobinit_nopinit
+ffffffff  __TI_pprof_out_hndl           
+ffffffff  __TI_prof_data_size           
+ffffffff  __TI_prof_data_start          
+00000000  __TI_static_base__            
+0000076d  __TI_zero_init_nomemset       
+ffffffff  __binit__                     
+UNDEFED   __mpu_init                    
+20000000  __stack                       
+20000000  __start___llvm_prf_bits       
+20000000  __start___llvm_prf_cnts       
+20000000  __stop___llvm_prf_bits        
+20000000  __stop___llvm_prf_cnts        
+000006c1  _c_int00_noargs               
+UNDEFED   _system_post_cinit            
+000007a1  _system_pre_init              
+0000078b  abort                         
+ffffffff  binit                         
+00000000  g_pfnVectors                  
+0000064f  main                          
+20000100  system                        
+
+
+GLOBAL SYMBOLS: SORTED BY Symbol Address 
+
+address   name                          
+-------   ----                          
+00000000  __TI_ATRegion0_region_sz      
+00000000  __TI_ATRegion0_src_addr       
+00000000  __TI_ATRegion0_trg_addr       
+00000000  __TI_ATRegion1_region_sz      
+00000000  __TI_ATRegion1_src_addr       
+00000000  __TI_ATRegion1_trg_addr       
+00000000  __TI_ATRegion2_region_sz      
+00000000  __TI_ATRegion2_src_addr       
+00000000  __TI_ATRegion2_trg_addr       
+00000000  __TI_static_base__            
+00000000  g_pfnVectors                  
+00000100  __STACK_SIZE                  
+0000026d  StateMachine_Run              
+000003fd  SysCtlClockSet                
+000004f1  UART0_Init                    
+000005cd  PortF_Init                    
+0000064f  main                          
+00000689  __TI_auto_init_nobinit_nopinit
+000006c1  _c_int00_noargs               
+000006f5  UART0_WriteChar               
+00000723  Button_Read                   
+00000749  LED_Set                       
+0000076d  __TI_zero_init_nomemset       
+0000077f  ResetISR                      
+00000785  SysCtlDelay                   
+0000078b  abort                         
+00000794  C$$EXIT                       
+00000795  HOSTexit                      
+000007a1  _system_pre_init              
+000007ac  __TI_Handler_Table_Base       
+000007b0  __TI_CINIT_Base               
+000007b0  __TI_Handler_Table_Limit      
+000007b8  __TI_CINIT_Limit              
+000007b8  __TI_CINIT_Warm               
+20000000  __stack                       
+20000000  __start___llvm_prf_bits       
+20000000  __start___llvm_prf_cnts       
+20000000  __stop___llvm_prf_bits        
+20000000  __stop___llvm_prf_cnts        
+20000100  __STACK_END                   
+20000100  __STACK_TOP                   
+20000100  system                        
+ffffffff  __TI_pprof_out_hndl           
+ffffffff  __TI_prof_data_size           
+ffffffff  __TI_prof_data_start          
+ffffffff  __binit__                     
+ffffffff  binit                         
+UNDEFED   __mpu_init                    
+UNDEFED   _system_post_cinit            
+
+[49 symbols]
