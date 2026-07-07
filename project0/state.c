@@ -16,7 +16,7 @@ void StateMachine_Run(void) {
     if (system.sw1) {
       system.currentState = STATE_RED;
       SysCtlDelay(DEBOUNCE_DELAY);
-      UART0_WriteChar('A');
+      UART0_WriteChar('AB');
     }
     break;
   case STATE_RED:
