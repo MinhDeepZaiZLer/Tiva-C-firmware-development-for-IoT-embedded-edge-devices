@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS
+CG_TOOL_ROOT := D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -126,7 +126,7 @@ all: $(OBJS) $(GEN_CMDS)
 # Tool invocations
 project_0_test.out: $(OBJS) $(GEN_CMDS)
 	@echo 'Arm Linker - building target: "$@"'
-	"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/bin/tiarmclang.exe" -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mlittle-endian -mthumb -Og -DPART_TM4C123GH6PM -g -Wall -fdata-sections -ffunction-sections -Wl,-m"project_0_test.map" -Wl,-i"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib" -Wl,--reread_libs -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="project_0_test_linkInfo.xml" -Wl,--rom_model -o "project_0_test.out" $(ORDERED_OBJS)
+	"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/bin/tiarmclang.exe" -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mlittle-endian -mthumb -Og -DPART_TM4C123GH6PM -g -Wall -fdata-sections -ffunction-sections -Wl,-m"project_0_test.map" -Wl,-i"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib" -Wl,--reread_libs -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="project_0_test_linkInfo.xml" -Wl,--rom_model -o "project_0_test.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 

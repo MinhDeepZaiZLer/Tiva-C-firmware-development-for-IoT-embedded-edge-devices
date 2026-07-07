@@ -1,7 +1,7 @@
 [
    {
-      "directory" : "D:/CCStudio_Workspace/project_0_test/Debug",
-      "command"   : "clang++ -I\"D:/CCStudio_Workspace/project_0_test\" -I\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include\" -I\"D:/ti/TivaWare_C_Series-2.2.0.295/inc\" -I\"D:/ti/TivaWare_C_Series-2.2.0.295\" -I\"D:/ti/TivaWare_C_Series-2.2.0.295/driverlib\" -DPART_TM4C123GH6PM -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/armv7em-ti-none-eabihf/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c++/v1\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib/clang/22/include\" -isystem\"D:/ti/ccs2100/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c\" -xc",
-      "file"      : "D:/CCStudio_Workspace/project_0_test/main.c"
+      "directory" : "D:/GitHub/Embedded_Learning_Demo/project_0_test/Debug",
+      "command"   : "clang++ -I\"D:/GitHub/Embedded_Learning_Demo/project_0_test\" -I\"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include\" -I\"D:/ti/TivaWare_C_Series-2.2.0.295/inc\" -I\"D:/ti/TivaWare_C_Series-2.2.0.295\" -I\"D:/ti/TivaWare_C_Series-2.2.0.295/driverlib\" -DPART_TM4C123GH6PM -isystem\"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/armv7em-ti-none-eabihf/c++/v1\" -isystem\"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c++/v1\" -isystem\"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/lib/clang/22/include\" -isystem\"D:/css/ccs/tools/compiler/ti-cgt-armllvm_5.1.1.LTS/include/c\" -xc",
+      "file"      : "D:/GitHub/Embedded_Learning_Demo/project_0_test/main.c"
    }
 ]
