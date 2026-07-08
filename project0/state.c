@@ -15,44 +15,44 @@ void StateMachine_Run(void) {
     LED_Set(STATE_IDLE);
     if (system.sw1) {
       system.currentState = STATE_RED;
-      SysCtlDelay(DEBOUNCE_DELAY);
-      UART0_WriteChar('AB');
+    //   SysCtlDelay(DEBOUNCE_DELAY);
+      UART0_WriteString("Red Led on\r\n");
     }
     break;
   case STATE_RED:
     LED_Set(RED);
     if (system.sw1) {
       system.currentState = STATE_BLUE;
-      SysCtlDelay(DEBOUNCE_DELAY);
-      UART0_WriteChar('A');
+    //   SysCtlDelay(DEBOUNCE_DELAY);
+      UART0_WriteString("Blue Led on\r\n");
     } else if (system.sw2) {
       system.currentState = STATE_IDLE;
-      SysCtlDelay(DEBOUNCE_DELAY);
-      UART0_WriteChar('A');
+    //   SysCtlDelay(DEBOUNCE_DELAY);
+      UART0_WriteString("Turn Off\r\n");
     }
     break;
   case STATE_BLUE:
     LED_Set(BLUE);
     if (system.sw1) {
       system.currentState = STATE_GREEN;
-      SysCtlDelay(DEBOUNCE_DELAY);
-      UART0_WriteChar('A');
+    //   SysCtlDelay(DEBOUNCE_DELAY);
+      UART0_WriteString("Green Led on\r\n");
     } else if (system.sw2) {
       system.currentState = STATE_RED;
-      SysCtlDelay(DEBOUNCE_DELAY);
-      UART0_WriteChar('A');
+    //   SysCtlDelay(DEBOUNCE_DELAY);
+      UART0_WriteString("Red Led on\r\n");
     }
     break;
   case STATE_GREEN:
     LED_Set(GREEN);
     if (system.sw1) {
       system.currentState = STATE_IDLE;
-      SysCtlDelay(DEBOUNCE_DELAY);
-      UART0_WriteChar('A');
+    //   SysCtlDelay(DEBOUNCE_DELAY);
+      UART0_WriteString("Turn Off\r\n");
     } else if (system.sw2) {
       system.currentState = STATE_BLUE;
-      SysCtlDelay(DEBOUNCE_DELAY);
-      UART0_WriteChar('A');
+    //   SysCtlDelay(DEBOUNCE_DELAY);
+      UART0_WriteString("Blue Led on\r\n");
     }
     break;
   default:
