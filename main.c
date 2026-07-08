@@ -46,5 +46,6 @@ int main(void)
     {
         Button_Read();
         StateMachine_Run();
+        SysCtlDelay(106666);
     }
 }
