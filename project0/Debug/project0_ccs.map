@@ -1,33 +1,30 @@
 ******************************************************************************
             TI ARM Clang Linker PC v5.1.1                      
 ******************************************************************************
->> Linked Wed Jul  8 15:55:06 2026
+>> Linked Thu Jul  9 17:03:39 2026
 
 OUTPUT FILE NAME:   <project0.out>
-ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 000007e9
+ENTRY POINT SYMBOL: "_c_int00_noinit_noargs"  address: 000008e9
 
 
 MEMORY CONFIGURATION
 
          name            origin    length      used     unused   attr    fill
 ----------------------  --------  ---------  --------  --------  ----  --------
-  FLASH                 00000000   00040000  00000951  0003f6af  R  X
-  SRAM                  20000000   00008000  00000105  00007efb  RW X
+  FLASH                 00000000   00040000  00000a9a  0003f566  R  X
+  SRAM                  20000000   00008000  00000100  00007f00  RW X
 
 
 SEGMENT ALLOCATION MAP
 
 run origin  load origin   length   init length attrs members
 ----------  ----------- ---------- ----------- ----- -------
-00000000    00000000    00000954   00000954    r-x
+00000000    00000000    00000a9a   00000a9a    r-x
   00000000    00000000    0000026c   0000026c    r-- .intvecs
-  0000026c    0000026c    00000684   00000684    r-x .text
-  000008f0    000008f0    00000035   00000035    r-- .rodata
-  00000928    00000928    0000002c   0000002c    r-- .cinit
-20000000    20000000    00000105   00000000    rw-
+  0000026c    0000026c    000007c0   000007c0    r-x .text
+  00000a2c    00000a2c    0000006e   0000006e    r-- .rodata
+20000000    20000000    00000100   00000000    rw-
   20000000    20000000    00000100   00000000    rw- .stack
-  20000100    20000100    00000003   00000000    rw- .bss
-  20000103    20000103    00000002   00000000    rw- .data
 
 
 SECTION ALLOCATION MAP
@@ -38,60 +35,59 @@ section   page    origin      length       input sections
 .intvecs   0    00000000    0000026c     
                   00000000    0000026c     startup_ccs.o (.intvecs)
 
-.text      0    0000026c    00000684     
-                  0000026c    00000180     state.o (.text.StateMachine_Run)
-                  000003ec    000000f4     driverlib.lib : sysctl.obj (.text:SysCtlClockSet)
-                  000004e0    000000dc     uart.o (.text.UART0_Init)
-                  000005bc    000000b6     gpio.o (.text.Button_Read)
-                  00000672    00000082     gpio.o (.text.PortF_Init)
-                  000006f4    00000074     libc.a : copy_decompress_lzss.c.obj (.text:decompress:lzss)
-                  00000768    00000046     main.o (.text.main)
-                  000007ae    00000002     --HOLE-- [fill = 0]
-                  000007b0    00000038     libc.a : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit)
-                  000007e8    00000034            : boot_cortex_m.c.obj (.text:_c_int00_noargs)
-                  0000081c    0000002e     uart.o (.text.UART0_WriteChar)
-                  0000084a    00000024     gpio.o (.text.LED_Set)
-                  0000086e    00000024     uart.o (.text.UART0_WriteString)
-                  00000892    00000012     libc.a : memcpy_t2.S.obj (.text:TI_memcpy_small)
-                  000008a4    00000012            : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset)
-                  000008b6    0000000e            : copy_decompress_none.c.obj (.text:decompress:none)
-                  000008c4    00000006     startup_ccs.o (.text.ResetISR)
-                  000008ca    00000006     driverlib.lib : sysctl.obj (.text:SysCtlDelay)
-                  000008d0    00000006     libc.a : exit.c.obj (.text:abort)
-                  000008d6    00000004     startup_ccs.o (.text.FaultISR)
-                  000008da    00000004     libsysbm.a : hostexit.c.obj (.text.HOSTexit)
-                  000008de    00000004     startup_ccs.o (.text.IntDefaultHandler)
-                  000008e2    00000004     startup_ccs.o (.text.NmiSR)
-                  000008e6    00000004     libc.a : pre_init.c.obj (.text._system_pre_init)
-                  000008ea    00000002     --HOLE-- [fill = 0]
-                  000008ec    00000004     libclang_rt.builtins.a : aeabi_memcpy.S.obj (.text)
+.text      0    0000026c    000007c0     
+                  0000026c    000000f2     main.o (.text.main)
+                  0000035e    000000bc     main.o (.text.Uart00_Init)
+                  0000041a    000000b0     main.o (.text.LCD_WriteInt)
+                  000004ca    000000b0     main.o (.text.Uart00_WriteInt)
+                  0000057a    00000096     main.o (.text.I2C0_Init)
+                  00000610    00000078     main.o (.text.LCD_Init)
+                  00000688    00000060     main.o (.text.I2C0_ReadByte)
+                  000006e8    0000005e     main.o (.text.MMA7660_ReadAxisRaw)
+                  00000746    00000052     main.o (.text.I2C0_WriteByte)
+                  00000798    00000052     main.o (.text.I2C0_WriteCmdOnly)
+                  000007ea    0000003e     main.o (.text.MMA7660_ConvertSigned6Bit)
+                  00000828    00000038     main.o (.text.LCD_SetCursor)
+                  00000860    0000002e     main.o (.text.MMA7660_Init)
+                  0000088e    0000002e     main.o (.text.Uart00_WriteChar)
+                  000008bc    0000002c     main.o (.text.Delay_ms)
+                  000008e8    0000002c     libc.a : boot_cortex_m.c.obj (.text:_c_int00_noinit_noargs)
+                  00000914    00000024     main.o (.text.LCD_WriteString)
+                  00000938    00000024     main.o (.text.Uart00_WriteString)
+                  0000095c    0000001e     main.o (.text.LCD_SetRGBReg)
+                  0000097a    0000001a     main.o (.text.MMA7660_ReadX)
+                  00000994    0000001a     main.o (.text.MMA7660_ReadY)
+                  000009ae    0000001a     main.o (.text.MMA7660_ReadZ)
+                  000009c8    00000018     main.o (.text.LCD_Command)
+                  000009e0    00000018     main.o (.text.LCD_WriteChar)
+                  000009f8    00000014     main.o (.text.I2C0_WaitDone)
+                  00000a0c    00000006     startup_ccs.o (.text.ResetISR)
+                  00000a12    00000006     libc.a : exit.c.obj (.text:abort)
+                  00000a18    00000004     startup_ccs.o (.text.FaultISR)
+                  00000a1c    00000004     libsysbm.a : hostexit.c.obj (.text.HOSTexit)
+                  00000a20    00000004     startup_ccs.o (.text.IntDefaultHandler)
+                  00000a24    00000004     startup_ccs.o (.text.NmiSR)
+                  00000a28    00000004     libc.a : pre_init.c.obj (.text._system_pre_init)
 
-.rodata    0    000008f0    00000035     
-                  000008f0    0000000f     state.o (.rodata.str1.10594799503128334244.1)
-                  000008ff    0000000e     state.o (.rodata.str1.10899599654568504247.1)
-                  0000090d    0000000d     state.o (.rodata.str1.8650044326576809537.1)
-                  0000091a    0000000b     state.o (.rodata.str1.9409152763965699502.1)
-
-.cinit     0    00000928    0000002c     
-                  00000928    0000000c     (__TI_handler_table)
-                  00000934    00000008     (.cinit..bss.load) [load image, compression = zero_init]
-                  0000093c    00000006     (.cinit..data.load) [load image, compression = lzss]
-                  00000942    00000002     --HOLE-- [fill = 0]
-                  00000944    00000010     (__TI_cinit_table)
+.cinit     0    00000000    00000000     
 
 .init_array 
 *          0    00000000    00000000     UNINITIALIZED
 
-.bss       0    20000100    00000003     UNINITIALIZED
-                  20000100    00000003     (.common:system)
-
-.data      0    20000103    00000002     UNINITIALIZED
-                  20000103    00000001     gpio.o (.data.last_sw1)
-                  20000104    00000001     gpio.o (.data.last_sw2)
-
 .stack     0    20000000    00000100     UNINITIALIZED
                   20000000    00000004     libc.a : boot_cortex_m.c.obj (.stack)
                   20000004    000000fc     --HOLE--
+
+.rodata    0    00000a2c    0000006e     
+                  00000a2c    00000034     main.o (.rodata.str1.15159059442110792349.1)
+                  00000a60    00000012     main.o (.rodata.str1.18227636981041470289.1)
+                  00000a72    00000012     main.o (.rodata.str1.8154729771448623357.1)
+                  00000a84    00000004     main.o (.rodata.str1.14112174005742061988.1)
+                  00000a88    00000004     main.o (.rodata.str1.17100691992556644108.1)
+                  00000a8c    00000004     main.o (.rodata.str1.2846389346932560359.1)
+                  00000a90    00000004     main.o (.rodata.str1.288608917962107522.1)
+                  00000a94    00000003     main.o (.rodata.str1.12180500075719773345.1)
+                  00000a97    00000003     main.o (.rodata.str1.7702501944640899365.1)
 
 __llvm_prf_cnts 
 *          0    20000000    00000000     UNINITIALIZED
@@ -101,186 +97,146 @@ __llvm_prf_bits
 
 MODULE SUMMARY
 
-       Module                       code   ro data   rw data
-       ------                       ----   -------   -------
+       Module                code   ro data   rw data
+       ------                ----   -------   -------
     .\
-       startup_ccs.o                18     620       0      
-       state.o                      384    53        0      
-       gpio.o                       348    0         2      
-       uart.o                       302    0         0      
-       main.o                       70     0         3      
-    +--+----------------------------+------+---------+---------+
-       Total:                       1122   673       5      
-                                                            
-    C:/TI/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib
-       sysctl.obj                   250    0         0      
-    +--+----------------------------+------+---------+---------+
-       Total:                       250    0         0      
-                                                            
+       main.o                1908   110       0      
+       startup_ccs.o         18     620       0      
+    +--+---------------------+------+---------+---------+
+       Total:                1926   730       0      
+                                                     
     D:\ti\ccs2100\ccs\tools\compiler\ti-cgt-armllvm_5.1.1.LTS\lib\armv7em-ti-none-eabihf/c/libc.a
-       copy_decompress_lzss.c.obj   116    0         0      
-       autoinit.c.obj               56     0         0      
-       boot_cortex_m.c.obj          52     0         0      
-       copy_zero_init.c.obj         18     0         0      
-       memcpy_t2.S.obj              18     0         0      
-       copy_decompress_none.c.obj   14     0         0      
-       exit.c.obj                   6      0         0      
-       pre_init.c.obj               4      0         0      
-    +--+----------------------------+------+---------+---------+
-       Total:                       284    0         0      
-                                                            
+       boot_cortex_m.c.obj   44     0         0      
+       exit.c.obj            6      0         0      
+       pre_init.c.obj        4      0         0      
+    +--+---------------------+------+---------+---------+
+       Total:                54     0         0      
+                                                     
     D:\ti\ccs2100\ccs\tools\compiler\ti-cgt-armllvm_5.1.1.LTS\lib\armv7em-ti-none-eabihf/c/libsysbm.a
-       hostexit.c.obj               4      0         0      
-    +--+----------------------------+------+---------+---------+
-       Total:                       4      0         0      
-                                                            
-    D:\ti\ccs2100\ccs\tools\compiler\ti-cgt-armllvm_5.1.1.LTS\lib\armv7em-ti-none-eabihf/libclang_rt.builtins.a
-       aeabi_memcpy.S.obj           4      0         0      
-    +--+----------------------------+------+---------+---------+
-       Total:                       4      0         0      
-                                                            
-       Stack:                       0      0         256    
-       Linker Generated:            0      42        0      
-    +--+----------------------------+------+---------+---------+
-       Grand Total:                 1664   715       261    
-
-
-LINKER GENERATED COPY TABLES
-
-__TI_cinit_table @ 00000944 records: 2, size/record: 8, table size: 16
-	.bss: load addr=00000934, load size=00000008 bytes, run addr=20000100, run size=00000003 bytes, compression=zero_init
-	.data: load addr=0000093c, load size=00000006 bytes, run addr=20000103, run size=00000002 bytes, compression=lzss
-
-
-LINKER GENERATED HANDLER TABLE
-
-__TI_handler_table @ 00000928 records: 3, size/record: 4, table size: 12
-	index: 0, handler: __TI_decompress_lzss
-	index: 1, handler: __TI_decompress_none
-	index: 2, handler: __TI_zero_init
+       hostexit.c.obj        4      0         0      
+    +--+---------------------+------+---------+---------+
+       Total:                4      0         0      
+                                                     
+       Stack:                0      0         256    
+    +--+---------------------+------+---------+---------+
+       Grand Total:          1984   730       256    
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
 
-address   name                          
--------   ----                          
-000005bd  Button_Read                   
-000008da  C$$EXIT                       
-000008db  HOSTexit                      
-0000084b  LED_Set                       
-00000673  PortF_Init                    
-000008c5  ResetISR                      
-0000026d  StateMachine_Run              
-000003ed  SysCtlClockSet                
-000008cb  SysCtlDelay                   
-00000893  TI_memcpy_small               
-000004e1  UART0_Init                    
-0000081d  UART0_WriteChar               
-0000086f  UART0_WriteString             
-20000100  __STACK_END                   
-00000100  __STACK_SIZE                  
-20000100  __STACK_TOP                   
-00000000  __TI_ATRegion0_region_sz      
-00000000  __TI_ATRegion0_src_addr       
-00000000  __TI_ATRegion0_trg_addr       
-00000000  __TI_ATRegion1_region_sz      
-00000000  __TI_ATRegion1_src_addr       
-00000000  __TI_ATRegion1_trg_addr       
-00000000  __TI_ATRegion2_region_sz      
-00000000  __TI_ATRegion2_src_addr       
-00000000  __TI_ATRegion2_trg_addr       
-00000944  __TI_CINIT_Base               
-00000954  __TI_CINIT_Limit              
-00000954  __TI_CINIT_Warm               
-00000928  __TI_Handler_Table_Base       
-00000934  __TI_Handler_Table_Limit      
-000007b1  __TI_auto_init_nobinit_nopinit
-000006f5  __TI_decompress_lzss          
-000008b7  __TI_decompress_none          
-ffffffff  __TI_pprof_out_hndl           
-ffffffff  __TI_prof_data_size           
-ffffffff  __TI_prof_data_start          
-00000000  __TI_static_base__            
-000008a5  __TI_zero_init_nomemset       
-000008ed  __aeabi_memcpy                
-000008ed  __aeabi_memcpy4               
-000008ed  __aeabi_memcpy8               
-ffffffff  __binit__                     
-UNDEFED   __mpu_init                    
-20000000  __stack                       
-20000000  __start___llvm_prf_bits       
-20000000  __start___llvm_prf_cnts       
-20000000  __stop___llvm_prf_bits        
-20000000  __stop___llvm_prf_cnts        
-000007e9  _c_int00_noargs               
-UNDEFED   _system_post_cinit            
-000008e7  _system_pre_init              
-000008d1  abort                         
-ffffffff  binit                         
-00000000  g_pfnVectors                  
-00000769  main                          
-20000100  system                        
+address   name                    
+-------   ----                    
+00000a1c  C$$EXIT                 
+000008bd  Delay_ms                
+00000a1d  HOSTexit                
+0000057b  I2C0_Init               
+00000689  I2C0_ReadByte           
+00000747  I2C0_WriteByte          
+00000799  I2C0_WriteCmdOnly       
+000009c9  LCD_Command             
+00000611  LCD_Init                
+00000829  LCD_SetCursor           
+000009e1  LCD_WriteChar           
+00000915  LCD_WriteString         
+00000861  MMA7660_Init            
+0000097b  MMA7660_ReadX           
+00000995  MMA7660_ReadY           
+000009af  MMA7660_ReadZ           
+00000a0d  ResetISR                
+0000035f  Uart00_Init             
+0000088f  Uart00_WriteChar        
+000004cb  Uart00_WriteInt         
+00000939  Uart00_WriteString      
+20000100  __STACK_END             
+00000100  __STACK_SIZE            
+20000100  __STACK_TOP             
+00000000  __TI_ATRegion0_region_sz
+00000000  __TI_ATRegion0_src_addr 
+00000000  __TI_ATRegion0_trg_addr 
+00000000  __TI_ATRegion1_region_sz
+00000000  __TI_ATRegion1_src_addr 
+00000000  __TI_ATRegion1_trg_addr 
+00000000  __TI_ATRegion2_region_sz
+00000000  __TI_ATRegion2_src_addr 
+00000000  __TI_ATRegion2_trg_addr 
+00000000  __TI_CINIT_Base         
+00000000  __TI_CINIT_Limit        
+00000000  __TI_CINIT_Warm         
+ffffffff  __TI_pprof_out_hndl     
+ffffffff  __TI_prof_data_size     
+ffffffff  __TI_prof_data_start    
+00000000  __TI_static_base__      
+ffffffff  __binit__               
+UNDEFED   __mpu_init              
+20000000  __stack                 
+20000000  __start___llvm_prf_bits 
+20000000  __start___llvm_prf_cnts 
+20000000  __stop___llvm_prf_bits  
+20000000  __stop___llvm_prf_cnts  
+000008e9  _c_int00_noinit_noargs  
+00000a29  _system_pre_init        
+00000a13  abort                   
+ffffffff  binit                   
+00000000  g_pfnVectors            
+0000026d  main                    
 
 
 GLOBAL SYMBOLS: SORTED BY Symbol Address 
 
-address   name                          
--------   ----                          
-00000000  __TI_ATRegion0_region_sz      
-00000000  __TI_ATRegion0_src_addr       
-00000000  __TI_ATRegion0_trg_addr       
-00000000  __TI_ATRegion1_region_sz      
-00000000  __TI_ATRegion1_src_addr       
-00000000  __TI_ATRegion1_trg_addr       
-00000000  __TI_ATRegion2_region_sz      
-00000000  __TI_ATRegion2_src_addr       
-00000000  __TI_ATRegion2_trg_addr       
-00000000  __TI_static_base__            
-00000000  g_pfnVectors                  
-00000100  __STACK_SIZE                  
-0000026d  StateMachine_Run              
-000003ed  SysCtlClockSet                
-000004e1  UART0_Init                    
-000005bd  Button_Read                   
-00000673  PortF_Init                    
-000006f5  __TI_decompress_lzss          
-00000769  main                          
-000007b1  __TI_auto_init_nobinit_nopinit
-000007e9  _c_int00_noargs               
-0000081d  UART0_WriteChar               
-0000084b  LED_Set                       
-0000086f  UART0_WriteString             
-00000893  TI_memcpy_small               
-000008a5  __TI_zero_init_nomemset       
-000008b7  __TI_decompress_none          
-000008c5  ResetISR                      
-000008cb  SysCtlDelay                   
-000008d1  abort                         
-000008da  C$$EXIT                       
-000008db  HOSTexit                      
-000008e7  _system_pre_init              
-000008ed  __aeabi_memcpy                
-000008ed  __aeabi_memcpy4               
-000008ed  __aeabi_memcpy8               
-00000928  __TI_Handler_Table_Base       
-00000934  __TI_Handler_Table_Limit      
-00000944  __TI_CINIT_Base               
-00000954  __TI_CINIT_Limit              
-00000954  __TI_CINIT_Warm               
-20000000  __stack                       
-20000000  __start___llvm_prf_bits       
-20000000  __start___llvm_prf_cnts       
-20000000  __stop___llvm_prf_bits        
-20000000  __stop___llvm_prf_cnts        
-20000100  __STACK_END                   
-20000100  __STACK_TOP                   
-20000100  system                        
-ffffffff  __TI_pprof_out_hndl           
-ffffffff  __TI_prof_data_size           
-ffffffff  __TI_prof_data_start          
-ffffffff  __binit__                     
-ffffffff  binit                         
-UNDEFED   __mpu_init                    
-UNDEFED   _system_post_cinit            
+address   name                    
+-------   ----                    
+00000000  __TI_ATRegion0_region_sz
+00000000  __TI_ATRegion0_src_addr 
+00000000  __TI_ATRegion0_trg_addr 
+00000000  __TI_ATRegion1_region_sz
+00000000  __TI_ATRegion1_src_addr 
+00000000  __TI_ATRegion1_trg_addr 
+00000000  __TI_ATRegion2_region_sz
+00000000  __TI_ATRegion2_src_addr 
+00000000  __TI_ATRegion2_trg_addr 
+00000000  __TI_CINIT_Base         
+00000000  __TI_CINIT_Limit        
+00000000  __TI_CINIT_Warm         
+00000000  __TI_static_base__      
+00000000  g_pfnVectors            
+00000100  __STACK_SIZE            
+0000026d  main                    
+0000035f  Uart00_Init             
+000004cb  Uart00_WriteInt         
+0000057b  I2C0_Init               
+00000611  LCD_Init                
+00000689  I2C0_ReadByte           
+00000747  I2C0_WriteByte          
+00000799  I2C0_WriteCmdOnly       
+00000829  LCD_SetCursor           
+00000861  MMA7660_Init            
+0000088f  Uart00_WriteChar        
+000008bd  Delay_ms                
+000008e9  _c_int00_noinit_noargs  
+00000915  LCD_WriteString         
+00000939  Uart00_WriteString      
+0000097b  MMA7660_ReadX           
+00000995  MMA7660_ReadY           
+000009af  MMA7660_ReadZ           
+000009c9  LCD_Command             
+000009e1  LCD_WriteChar           
+00000a0d  ResetISR                
+00000a13  abort                   
+00000a1c  C$$EXIT                 
+00000a1d  HOSTexit                
+00000a29  _system_pre_init        
+20000000  __stack                 
+20000000  __start___llvm_prf_bits 
+20000000  __start___llvm_prf_cnts 
+20000000  __stop___llvm_prf_bits  
+20000000  __stop___llvm_prf_cnts  
+20000100  __STACK_END             
+20000100  __STACK_TOP             
+ffffffff  __TI_pprof_out_hndl     
+ffffffff  __TI_prof_data_size     
+ffffffff  __TI_prof_data_start    
+ffffffff  __binit__               
+ffffffff  binit                   
+UNDEFED   __mpu_init              
 
-[56 symbols]
+[53 symbols]

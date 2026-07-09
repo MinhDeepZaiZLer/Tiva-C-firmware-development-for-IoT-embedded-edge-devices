@@ -15,6 +15,7 @@ typedef struct {
     State_t currentState;
     bool sw1;
     bool sw2;
+    uint16_t adcValue;   
 } System_t;
 
 extern System_t system;
