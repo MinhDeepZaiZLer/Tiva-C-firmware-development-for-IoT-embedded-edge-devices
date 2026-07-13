@@ -11,8 +11,12 @@ GEN_CMDS__FLAG :=
 
 ORDERED_OBJS += \
 "./adc.o" \
+"./am2301b.o" \
 "./gpio.o" \
+"./i2c0.o" \
+"./lcd.o" \
 "./main.o" \
+"./mma7660.o" \
 "./startup_ccs.o" \
 "./state.o" \
 "./uart.o" \
@@ -143,8 +147,8 @@ project0.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)
-	-$(RM) "adc.o" "gpio.o" "main.o" "startup_ccs.o" "state.o" "uart.o" "uart1.o" 
-	-$(RM) "adc.d" "gpio.d" "main.d" "startup_ccs.d" "state.d" "uart.d" "uart1.d" 
+	-$(RM) "adc.o" "am2301b.o" "gpio.o" "i2c0.o" "lcd.o" "main.o" "mma7660.o" "startup_ccs.o" "state.o" "uart.o" "uart1.o" 
+	-$(RM) "adc.d" "am2301b.d" "gpio.d" "i2c0.d" "lcd.d" "main.d" "mma7660.d" "startup_ccs.d" "state.d" "uart.d" "uart1.d" 
 	-@echo ' '
 
 post-build:
