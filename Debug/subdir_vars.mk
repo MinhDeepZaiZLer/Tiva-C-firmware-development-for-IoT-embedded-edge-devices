@@ -10,8 +10,12 @@ CMD_SRCS += \
 
 C_SRCS += \
 ../adc.c \
+../am2301b.c \
 ../gpio.c \
+../i2c0.c \
+../lcd.c \
 ../main.c \
+../mma7660.c \
 ../startup_ccs.c \
 ../state.c \
 ../uart.c \
@@ -19,8 +23,12 @@ C_SRCS += \
 
 C_DEPS += \
 ./adc.d \
+./am2301b.d \
 ./gpio.d \
+./i2c0.d \
+./lcd.d \
 ./main.d \
+./mma7660.d \
 ./startup_ccs.d \
 ./state.d \
 ./uart.d \
@@ -28,8 +36,12 @@ C_DEPS += \
 
 OBJS += \
 ./adc.o \
+./am2301b.o \
 ./gpio.o \
+./i2c0.o \
+./lcd.o \
 ./main.o \
+./mma7660.o \
 ./startup_ccs.o \
 ./state.o \
 ./uart.o \
@@ -37,8 +49,12 @@ OBJS += \
 
 OBJS__QUOTED += \
 "adc.o" \
+"am2301b.o" \
 "gpio.o" \
+"i2c0.o" \
+"lcd.o" \
 "main.o" \
+"mma7660.o" \
 "startup_ccs.o" \
 "state.o" \
 "uart.o" \
@@ -46,8 +62,12 @@ OBJS__QUOTED += \
 
 C_DEPS__QUOTED += \
 "adc.d" \
+"am2301b.d" \
 "gpio.d" \
+"i2c0.d" \
+"lcd.d" \
 "main.d" \
+"mma7660.d" \
 "startup_ccs.d" \
 "state.d" \
 "uart.d" \
@@ -55,7 +75,11 @@ C_DEPS__QUOTED += \
 
 C_SRCS__QUOTED += \
 "../adc.c" \
+"../am2301b.c" \
 "../gpio.c" \
+"../i2c0.c" \
+"../lcd.c" \
+"../mma7660.c" \
 "../startup_ccs.c" \
 "../state.c" \
 "../uart.c" \

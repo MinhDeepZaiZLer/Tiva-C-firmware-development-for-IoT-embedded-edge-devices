@@ -95,3 +95,19 @@ char UART0_ReadChar(void) {
 
   return (char)(UART0_DR_R & 0xFF);
 }
+
+void UART0_WriteInt(int32_t num)
+{
+    char buffer[12];
+    int8_t i = 0;
+    uint8_t isNegative = 0;
+    uint32_t unum;
+
+    if (num < 0) { isNegative = 1; unum = (uint32_t)(-num); }
+    else { unum = (uint32_t)num; }
+
+    if (unum == 0) { UART0_WriteChar('0'); return; }
+    while (unum > 0) { buffer[i++] = (char)('0' + (unum % 10)); unum /= 10; }
+    if (isNegative) { UART0_WriteChar('-'); }
+    while (i > 0) { UART0_WriteChar(buffer[--i]); }
+}
