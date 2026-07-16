@@ -5,25 +5,22 @@
 SHELL = cmd.exe
 
 # Add inputs and outputs from these tool invocations to the build variables 
-CMD_SRCS += \
-../project0_ccs.cmd 
-
 C_SRCS += \
-../startup_ccs.c 
+../Drivers/ADC/adc.c 
 
 C_DEPS += \
-./startup_ccs.d 
+./Drivers/ADC/adc.d 
 
 OBJS += \
-./startup_ccs.o 
+./Drivers/ADC/adc.o 
 
 OBJS__QUOTED += \
-"startup_ccs.o" 
+"Drivers\ADC\adc.o" 
 
 C_DEPS__QUOTED += \
-"startup_ccs.d" 
+"Drivers\ADC\adc.d" 
 
 C_SRCS__QUOTED += \
-"../startup_ccs.c" 
+"../Drivers/ADC/adc.c" 
 
 

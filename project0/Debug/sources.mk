@@ -106,4 +106,12 @@ S62_DEPS__QUOTED :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 . \
+Application \
+Devices/AM2301b \
+Devices/LCD \
+Devices/MMA7660 \
+Drivers/ADC \
+Drivers/GPIO \
+Drivers/I2C \
+Drivers/UART \
 

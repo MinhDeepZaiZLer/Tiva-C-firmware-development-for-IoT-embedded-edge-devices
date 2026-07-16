@@ -10,17 +10,16 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
-"./adc.o" \
-"./am2301b.o" \
-"./gpio.o" \
-"./i2c0.o" \
-"./lcd.o" \
-"./main.o" \
-"./mma7660.o" \
 "./startup_ccs.o" \
-"./state.o" \
-"./uart.o" \
-"./uart1.o" \
+"./Application/main.o" \
+"./Application/state.o" \
+"./Devices/AM2301b/am2301b.o" \
+"./Devices/LCD/lcd.o" \
+"./Devices/MMA7660/mma7660.o" \
+"./Drivers/ADC/adc.o" \
+"./Drivers/GPIO/gpio.o" \
+"./Drivers/I2C/i2c0.o" \
+"./Drivers/UART/uart.o" \
 "../project0_ccs.cmd" \
 $(GEN_CMDS__FLAG) \
 -Wl,-l"C:/TI/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib" \
@@ -35,7 +34,23 @@ RMDIR := RMDIR /S/Q
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include subdir_vars.mk
+-include Application/subdir_vars.mk
+-include Devices/AM2301b/subdir_vars.mk
+-include Devices/LCD/subdir_vars.mk
+-include Devices/MMA7660/subdir_vars.mk
+-include Drivers/ADC/subdir_vars.mk
+-include Drivers/GPIO/subdir_vars.mk
+-include Drivers/I2C/subdir_vars.mk
+-include Drivers/UART/subdir_vars.mk
 -include subdir_rules.mk
+-include Application/subdir_rules.mk
+-include Devices/AM2301b/subdir_rules.mk
+-include Devices/LCD/subdir_rules.mk
+-include Devices/MMA7660/subdir_rules.mk
+-include Drivers/ADC/subdir_rules.mk
+-include Drivers/GPIO/subdir_rules.mk
+-include Drivers/I2C/subdir_rules.mk
+-include Drivers/UART/subdir_rules.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -147,8 +162,8 @@ project0.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)
-	-$(RM) "adc.o" "am2301b.o" "gpio.o" "i2c0.o" "lcd.o" "main.o" "mma7660.o" "startup_ccs.o" "state.o" "uart.o" "uart1.o" 
-	-$(RM) "adc.d" "am2301b.d" "gpio.d" "i2c0.d" "lcd.d" "main.d" "mma7660.d" "startup_ccs.d" "state.d" "uart.d" "uart1.d" 
+	-$(RM) "startup_ccs.o" "Application\main.o" "Application\state.o" "Devices\AM2301b\am2301b.o" "Devices\LCD\lcd.o" "Devices\MMA7660\mma7660.o" "Drivers\ADC\adc.o" "Drivers\GPIO\gpio.o" "Drivers\I2C\i2c0.o" "Drivers\UART\uart.o" 
+	-$(RM) "startup_ccs.d" "Application\main.d" "Application\state.d" "Devices\AM2301b\am2301b.d" "Devices\LCD\lcd.d" "Devices\MMA7660\mma7660.d" "Drivers\ADC\adc.d" "Drivers\GPIO\gpio.d" "Drivers\I2C\i2c0.d" "Drivers\UART\uart.d" 
 	-@echo ' '
 
 post-build:
