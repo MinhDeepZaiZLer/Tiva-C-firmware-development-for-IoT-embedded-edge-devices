@@ -20,6 +20,7 @@ ORDERED_OBJS += \
 "./Drivers/GPIO/gpio.o" \
 "./Drivers/I2C/i2c0.o" \
 "./Drivers/UART/uart.o" \
+"./Drivers/UART/uart1.o" \
 "../project0_ccs.cmd" \
 $(GEN_CMDS__FLAG) \
 -Wl,-l"C:/TI/TivaWare_C_Series-2.2.0.295/driverlib/ccs/Debug/driverlib.lib" \
@@ -162,8 +163,8 @@ project0.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)
-	-$(RM) "startup_ccs.o" "Application\main.o" "Application\state.o" "Devices\AM2301b\am2301b.o" "Devices\LCD\lcd.o" "Devices\MMA7660\mma7660.o" "Drivers\ADC\adc.o" "Drivers\GPIO\gpio.o" "Drivers\I2C\i2c0.o" "Drivers\UART\uart.o" 
-	-$(RM) "startup_ccs.d" "Application\main.d" "Application\state.d" "Devices\AM2301b\am2301b.d" "Devices\LCD\lcd.d" "Devices\MMA7660\mma7660.d" "Drivers\ADC\adc.d" "Drivers\GPIO\gpio.d" "Drivers\I2C\i2c0.d" "Drivers\UART\uart.d" 
+	-$(RM) "startup_ccs.o" "Application\main.o" "Application\state.o" "Devices\AM2301b\am2301b.o" "Devices\LCD\lcd.o" "Devices\MMA7660\mma7660.o" "Drivers\ADC\adc.o" "Drivers\GPIO\gpio.o" "Drivers\I2C\i2c0.o" "Drivers\UART\uart.o" "Drivers\UART\uart1.o" 
+	-$(RM) "startup_ccs.d" "Application\main.d" "Application\state.d" "Devices\AM2301b\am2301b.d" "Devices\LCD\lcd.d" "Devices\MMA7660\mma7660.d" "Drivers\ADC\adc.d" "Drivers\GPIO\gpio.d" "Drivers\I2C\i2c0.d" "Drivers\UART\uart.d" "Drivers\UART\uart1.d" 
 	-@echo ' '
 
 post-build:
