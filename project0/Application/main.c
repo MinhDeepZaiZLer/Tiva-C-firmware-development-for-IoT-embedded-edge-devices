@@ -3,21 +3,20 @@
 #include <stdio.h>
 
 #include "driverlib/sysctl.h"
+#include "driverlib/interrupt.h"
 #include "tm4c123gh6pm.h"
 
 #include "adc.h"
 #include "data_type.h"
+#include "delay.h"
 #include "gpio.h"
 #include "i2c0.h"
 #include "lcd.h"
 #include "mma7660.h"
 #include "state.h"
 #include "uart.h"
-void delayMs(uint32_t ms) {
-  for (uint32_t i = 0; i < ms; i++)
-    for (volatile uint32_t j = 0; j < 3180; j++)
-      ; // ~1ms @16MHz, chỉnh lại nếu cần
-}
+#include "uart1.h"
+
 void Display_Data_To_Putty(float h, float t);
 System_t system;
 void I2C_Test(void);
@@ -46,12 +45,14 @@ int main(void) {
 
   PortF_Init();
   UART0_Init();
+  UART1_Init();
+  IntMasterEnable();
   ADC0_Init();
   I2C0_Init();
   I2C0_ScanBus();
   LCD_Init();
   LCD_TestInit();
-  SysCtlDelay(5);
+  Delay_ms(5u);
   LCD_WriteChar('A');
   //   MMA7660_Init();
   //   uint8_t mode_check = I2C0_ReadByte(0x4C, 0x07);
@@ -67,8 +68,46 @@ int main(void) {
   float temperature = 0.0;
   system.adcValue = 0;
 
+  UART0_WriteString("=== ESP8266 AT Test Start ===\r\n");
+
+  if (AT_Send_Command("AT", "OK", 2000)) {
+    UART0_WriteString("AT: OK\r\n");
+  } else {
+    UART0_WriteString("AT: FAIL\r\n");
+  }
+
+  if (AT_Send_Command("AT+CWMODE=1", "OK", 2000)) {
+    UART0_WriteString("AT+CWMODE=1: OK\r\n");
+  } else {
+    UART0_WriteString("AT+CWMODE=1: FAIL\r\n");
+  }
+
+  if (AT_Send_Command("AT+CWLAP", "OK", 5000)) {
+    UART0_WriteString("AT+CWLAP: OK\r\n");
+  } else {
+    UART0_WriteString("AT+CWLAP: FAIL\r\n");
+  }
+
+  {
+    char cmd[128];
+    sprintf(cmd, "AT+CWJAP=\"Ming\",\"11111111\"");
+    if (AT_Send_Command(cmd, "WIFI GOT IP", 10000)) {
+      UART0_WriteString("AT+CWJAP: WIFI GOT IP\r\n");
+    } else if (AT_Send_Command(cmd, "OK", 10000)) {
+      UART0_WriteString("AT+CWJAP: OK\r\n");
+    } else {
+      UART0_WriteString("AT+CWJAP: FAIL\r\n");
+    }
+  }
+
+  if (AT_Send_Command("AT+CIFSR", "OK", 2000)) {
+    UART0_WriteString("AT+CIFSR: OK\r\n");
+  } else {
+    UART0_WriteString("AT+CIFSR: FAIL\r\n");
+  }
+
   //   LCD_Command(0x01);
-  SysCtlDelay(10666);
+  Delay_ms(10u);
 
   while (1) {
     Button_Read();
@@ -81,8 +120,7 @@ int main(void) {
     }
     // I2C_Test();
     StateMachine_Run();
-    // SysCtlDelay(106666);
-    SysCtlDelay(533333);
+    Delay_ms(200u);
   }
 }
 

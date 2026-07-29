@@ -7,11 +7,11 @@
 #define LCD_RGB_ADDR 0x62 // RGB (khong su dung)
 void LCD_TestInit(void) {
   LCD_Command(0x01); // Clear display
-  delayMs(2);
+  Delay_ms(2);
   LCD_Command(0x0C); // Display ON, cursor off, blink off
-  delayMs(2);
+  Delay_ms(2);
   LCD_Command(0x06); // Entry mode: tăng dần, không dịch màn hình
-  delayMs(2);
+  Delay_ms(2);
 }
 void LCD_Init(void) {
   Delay_ms(50);

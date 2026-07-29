@@ -1,0 +1,8 @@
+# FIXED
+
+Drivers/UART/uart1.o: ../Drivers/UART/uart1.c ../Drivers/UART/uart1.h \
+ C:/ti/TivaWare_C_Series-2.2.0.295/inc/tm4c123gh6pm.h \
+ C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/sysctl.h
+../Drivers/UART/uart1.h:
+C:/ti/TivaWare_C_Series-2.2.0.295/inc/tm4c123gh6pm.h:
+C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/sysctl.h:
