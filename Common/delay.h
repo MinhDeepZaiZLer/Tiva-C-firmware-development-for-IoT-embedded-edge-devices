@@ -1,6 +1,7 @@
 #ifndef DELAY_H_
 #define DELAY_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "driverlib/sysctl.h"
 
