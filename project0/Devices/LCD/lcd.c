@@ -4,13 +4,13 @@
 #include "tm4c123gh6pm.h"
 
 #define LCD_ADDR 0x3E
-#define LCD_RGB_ADDR 0x62 // RGB (khong su dung)
+#define LCD_RGB_ADDR 0x62 // RGB (not used)
 void LCD_TestInit(void) {
   LCD_Command(0x01); // Clear display
   Delay_ms(2);
   LCD_Command(0x0C); // Display ON, cursor off, blink off
   Delay_ms(2);
-  LCD_Command(0x06); // Entry mode: tăng dần, không dịch màn hình
+  LCD_Command(0x06); // Entry mode: increment, no display shift
   Delay_ms(2);
 }
 void LCD_Init(void) {
@@ -32,7 +32,7 @@ void LCD_Init(void) {
   //   LCD_SetRGBReg(0x02, 0xFF); /* Blue */
 }
 void LCD_Command(uint8_t cmd) {
-  uint8_t data[2] = {0x80, cmd}; // 0x80 = control byte báo "byte sau là lệnh"
+  uint8_t data[2] = {0x80, cmd}; // 0x80 = control byte indicates "next byte is command"
   I2C0_BurstWrite(0x3E, data, 2);
 }
 void LCD_WriteChar(char c) { I2C0_WriteCmdOnly(LCD_ADDR, 0x40, (uint8_t)c); }
@@ -89,22 +89,22 @@ bool I2C0_BurstWrite(uint8_t slaveAddr, uint8_t *data, uint8_t len) {
   I2C0_MDR_R = data[0];
 
   if (len == 1) {
-    I2C0_MCS_R = 0x07;                   // START + RUN + STOP (byte duy nhất)
+    I2C0_MCS_R = 0x07;                   // START + RUN + STOP (single byte)
   } else {
-    I2C0_MCS_R = 0x03;                   // START + RUN (byte đầu)
+    I2C0_MCS_R = 0x03;                   // START + RUN (first byte)
   }
-  while (I2C0_MCS_R & 0x01);             // đợi BUSY
+  while (I2C0_MCS_R & 0x01);             // wait BUSY
   if (I2C0_MCS_R & 0x02) {               // check ERROR
-    I2C0_MCS_R = 0x04;                   // STOP để giải phóng bus nếu lỗi
+    I2C0_MCS_R = 0x04;                   // STOP to release bus on error
     return false;
   }
 
   for (uint8_t i = 1; i < len; i++) {
     I2C0_MDR_R = data[i];
     if (i == len - 1) {
-      I2C0_MCS_R = 0x05;                 // RUN + STOP (byte cuối)
+      I2C0_MCS_R = 0x05;                 // RUN + STOP (last byte)
     } else {
-      I2C0_MCS_R = 0x01;                 // RUN (byte giữa)
+      I2C0_MCS_R = 0x01;                 // RUN (middle byte)
     }
     while (I2C0_MCS_R & 0x01);
     if (I2C0_MCS_R & 0x02) {

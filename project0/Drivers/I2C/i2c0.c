@@ -37,11 +37,11 @@ void I2C0_Init(void) {
 }
 
 // static bool I2C0_WaitDone(void) {
-//   uint32_t timeout = 100000; // chỉnh tùy theo tốc độ CPU
+//   uint32_t timeout = 100000; // adjust depending on CPU speed
 //   while ((I2C0_MCS_R & (1 << 0)) && timeout--)
 //     ;
 //   if (timeout == 0) {
-//     return false; // timeout thật sự, bus bị treo
+//     return false; // real timeout, bus stuck
 //   }
 //   uint32_t status = I2C0_MCS_R;
 
@@ -103,15 +103,15 @@ uint8_t I2C0_ReadByte(uint8_t slaveAddr, uint8_t regAddr) {
 }
 
 // ======================================== local test
-// ============================ Hàm quét bus, chỉ gửi START + address + STOP
-// (test-only write), không gửi data
+// ============================ Bus scan helper: send START + address + STOP
+// (test-only write), do not send data
 bool I2C0_ProbeAddr(uint8_t slaveAddr) {
   I2C0_MSA_R = (slaveAddr << 1) | 0x00; // write mode
   I2C0_MCS_R = 0x03;                    // START + RUN (chỉ gửi địa chỉ)
   while (I2C0_MCS_R & 0x01)
-    ;                             // đợi busy
-  bool ok = !(I2C0_MCS_R & 0x02); // bit ERROR = 0 nghĩa là có ACK
-  I2C0_MCS_R = 0x04;              // gửi STOP để giải phóng bus
+    ;                             // wait BUSY
+  bool ok = !(I2C0_MCS_R & 0x02); // bit ERROR = 0 means ACK received
+  I2C0_MCS_R = 0x04;              // send STOP to release bus
   while (I2C0_MCS_R & 0x01)
     ;
   return ok;

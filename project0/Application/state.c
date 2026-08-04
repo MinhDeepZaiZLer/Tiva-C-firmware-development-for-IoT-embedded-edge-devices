@@ -1,13 +1,15 @@
 #include "state.h"
 #include "data_type.h"
+#include <stdbool.h>
 #include "driverlib/sysctl.h"
 #include "gpio.h"
 #include "uart.h"
 
-// Thời gian delay chống dội phím cơ bản (Debounce)
-// Lưu ý: Giá trị này phụ thuộc vào xung nhịp hệ thống (System Clock)
-// Nếu clock là 16MHz, 1 delay loop tốn khoảng 3 chu kỳ máy
 #define DEBOUNCE_DELAY 10000
+// Basic debounce delay time
+// Note: This value depends on the system clock frequency
+// If the clock is 16MHz, one delay loop takes about 3 CPU cycles
+ 
 
 void StateMachine_Run(void) {
   switch (system.currentState) {

@@ -5,6 +5,7 @@
 
 
 void LCD_Init(void);
+void LCD_TestInit(void);
 void LCD_Command(uint8_t cmd);
 void LCD_WriteChar(char c);
 void LCD_WriteString(const char *str);
