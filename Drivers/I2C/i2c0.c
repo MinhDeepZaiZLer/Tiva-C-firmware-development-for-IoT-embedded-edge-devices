@@ -53,18 +53,14 @@ void I2C0_Init(void) {
 //   return true;
 // }
 static bool I2C0_WaitDone(void) {
-  while (I2C0_MCS_R & 0x01)
-    ;
+  for (uint32_t t = 0; t < 100000 && !(I2C0_MCS_R & 0x01); t++) {
+  }
+  for (uint32_t t = 0; t < 100000 && (I2C0_MCS_R & 0x01); t++) {
+  }
+  if (I2C0_MCS_R & 0x01)
+    return false;
 
-  // UART0_WriteString("MCS = 0x");
-
-  uint8_t m = I2C0_MCS_R;
-
-  // UART0_WriteChar("0123456789ABCDEF"[m >> 4]);
-  // UART0_WriteChar("0123456789ABCDEF"[m & 0x0F]);
-  // UART0_WriteString("\r\n");
-
-  return !(m & 0x02);
+  return !(I2C0_MCS_R & 0x02);
 }
 void I2C0_WriteByte(uint8_t slaveAddr, uint8_t regAddr, uint8_t data) {
   I2C0_MSA_R = (slaveAddr << 1) | 0x00;
@@ -108,12 +104,16 @@ uint8_t I2C0_ReadByte(uint8_t slaveAddr, uint8_t regAddr) {
 bool I2C0_ProbeAddr(uint8_t slaveAddr) {
   I2C0_MSA_R = (slaveAddr << 1) | 0x00; // write mode
   I2C0_MCS_R = 0x03;                    // START + RUN (chỉ gửi địa chỉ)
-  while (I2C0_MCS_R & 0x01)
-    ;                             // wait BUSY
+  for (uint32_t t = 0; t < 100000 && !(I2C0_MCS_R & 0x01); t++) {
+  }
+  for (uint32_t t = 0; t < 100000 && (I2C0_MCS_R & 0x01); t++) {
+  }
+  if (I2C0_MCS_R & 0x01)
+    return false;                       // bus stuck
   bool ok = !(I2C0_MCS_R & 0x02); // bit ERROR = 0 means ACK received
   I2C0_MCS_R = 0x04;              // send STOP to release bus
-  while (I2C0_MCS_R & 0x01)
-    ;
+  for (uint32_t t = 0; t < 100000 && (I2C0_MCS_R & 0x01); t++) {
+  }
   return ok;
 }
 

@@ -1,0 +1,16 @@
+# FIXED
+
+Common/app_common.o: ../Common/app_common.c ../Common/app_common.h \
+ D:/CCStudio_Workspace/project0/Devices/AM2301B/am2301b.h \
+ ../Common/data_type.h ../Common/delay.h \
+ C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/sysctl.h ../Common/mqtt.h \
+ D:/CCStudio_Workspace/project0/Drivers/UART/uart.h \
+ D:/CCStudio_Workspace/project0/Drivers/UART/uart1.h
+../Common/app_common.h:
+D:/CCStudio_Workspace/project0/Devices/AM2301B/am2301b.h:
+../Common/data_type.h:
+../Common/delay.h:
+C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/sysctl.h:
+../Common/mqtt.h:
+D:/CCStudio_Workspace/project0/Drivers/UART/uart.h:
+D:/CCStudio_Workspace/project0/Drivers/UART/uart1.h:

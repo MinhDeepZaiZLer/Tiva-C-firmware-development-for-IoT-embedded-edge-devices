@@ -1,6 +1,8 @@
 eclipse.preferences.version=1
 encoding//Debug/Application/subdir_rules.mk=UTF-8
 encoding//Debug/Application/subdir_vars.mk=UTF-8
+encoding//Debug/Common/subdir_rules.mk=UTF-8
+encoding//Debug/Common/subdir_vars.mk=UTF-8
 encoding//Debug/Devices/AM2301b/subdir_rules.mk=UTF-8
 encoding//Debug/Devices/AM2301b/subdir_vars.mk=UTF-8
 encoding//Debug/Devices/LCD/subdir_rules.mk=UTF-8

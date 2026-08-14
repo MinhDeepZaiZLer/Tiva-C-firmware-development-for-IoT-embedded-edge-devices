@@ -13,6 +13,8 @@ ORDERED_OBJS += \
 "./startup_ccs.o" \
 "./Application/main.o" \
 "./Application/state.o" \
+"./Common/app_common.o" \
+"./Common/mqtt.o" \
 "./Devices/AM2301b/am2301b.o" \
 "./Devices/LCD/lcd.o" \
 "./Devices/MMA7660/mma7660.o" \
@@ -36,6 +38,7 @@ RMDIR := RMDIR /S/Q
 -include sources.mk
 -include subdir_vars.mk
 -include Application/subdir_vars.mk
+-include Common/subdir_vars.mk
 -include Devices/AM2301b/subdir_vars.mk
 -include Devices/LCD/subdir_vars.mk
 -include Devices/MMA7660/subdir_vars.mk
@@ -45,6 +48,7 @@ RMDIR := RMDIR /S/Q
 -include Drivers/UART/subdir_vars.mk
 -include subdir_rules.mk
 -include Application/subdir_rules.mk
+-include Common/subdir_rules.mk
 -include Devices/AM2301b/subdir_rules.mk
 -include Devices/LCD/subdir_rules.mk
 -include Devices/MMA7660/subdir_rules.mk
@@ -163,8 +167,8 @@ project0.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)
-	-$(RM) "startup_ccs.o" "Application\main.o" "Application\state.o" "Devices\AM2301b\am2301b.o" "Devices\LCD\lcd.o" "Devices\MMA7660\mma7660.o" "Drivers\ADC\adc.o" "Drivers\GPIO\gpio.o" "Drivers\I2C\i2c0.o" "Drivers\UART\uart.o" "Drivers\UART\uart1.o" 
-	-$(RM) "startup_ccs.d" "Application\main.d" "Application\state.d" "Devices\AM2301b\am2301b.d" "Devices\LCD\lcd.d" "Devices\MMA7660\mma7660.d" "Drivers\ADC\adc.d" "Drivers\GPIO\gpio.d" "Drivers\I2C\i2c0.d" "Drivers\UART\uart.d" "Drivers\UART\uart1.d" 
+	-$(RM) "startup_ccs.o" "Application\main.o" "Application\state.o" "Common\app_common.o" "Common\mqtt.o" "Devices\AM2301b\am2301b.o" "Devices\LCD\lcd.o" "Devices\MMA7660\mma7660.o" "Drivers\ADC\adc.o" "Drivers\GPIO\gpio.o" "Drivers\I2C\i2c0.o" "Drivers\UART\uart.o" "Drivers\UART\uart1.o" 
+	-$(RM) "startup_ccs.d" "Application\main.d" "Application\state.d" "Common\app_common.d" "Common\mqtt.d" "Devices\AM2301b\am2301b.d" "Devices\LCD\lcd.d" "Devices\MMA7660\mma7660.d" "Drivers\ADC\adc.d" "Drivers\GPIO\gpio.d" "Drivers\I2C\i2c0.d" "Drivers\UART\uart.d" "Drivers\UART\uart1.d" 
 	-@echo ' '
 
 post-build:
