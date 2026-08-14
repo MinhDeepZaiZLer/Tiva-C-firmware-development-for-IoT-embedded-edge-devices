@@ -1,6 +1,8 @@
 "./startup_ccs.o"
 "./Application/main.o"
 "./Application/state.o"
+"./Common/app_common.o"
+"./Common/mqtt.o"
 "./Devices/AM2301b/am2301b.o"
 "./Devices/LCD/lcd.o"
 "./Devices/MMA7660/mma7660.o"

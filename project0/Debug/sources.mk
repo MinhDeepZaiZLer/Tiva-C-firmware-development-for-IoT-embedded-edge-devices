@@ -107,6 +107,7 @@ S62_DEPS__QUOTED :=
 SUBDIRS := \
 . \
 Application \
+Common \
 Devices/AM2301b \
 Devices/LCD \
 Devices/MMA7660 \

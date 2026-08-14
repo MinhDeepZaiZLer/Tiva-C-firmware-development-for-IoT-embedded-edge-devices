@@ -5,6 +5,8 @@ Application/main.o: ../Application/main.c \
  C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/interrupt.h \
  C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/sysctl.h \
  D:/CCStudio_Workspace/project0/Drivers/ADC/adc.h \
+ D:/CCStudio_Workspace/project0/Devices/AM2301B/am2301b.h \
+ D:/CCStudio_Workspace/project0/Common/app_common.h \
  D:/CCStudio_Workspace/project0/Common/data_type.h \
  D:/CCStudio_Workspace/project0/Common/delay.h \
  D:/CCStudio_Workspace/project0/Drivers/GPIO/gpio.h \
@@ -18,6 +20,8 @@ C:/ti/TivaWare_C_Series-2.2.0.295/inc/tm4c123gh6pm.h:
 C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/interrupt.h:
 C:/ti/TivaWare_C_Series-2.2.0.295/driverlib/sysctl.h:
 D:/CCStudio_Workspace/project0/Drivers/ADC/adc.h:
+D:/CCStudio_Workspace/project0/Devices/AM2301B/am2301b.h:
+D:/CCStudio_Workspace/project0/Common/app_common.h:
 D:/CCStudio_Workspace/project0/Common/data_type.h:
 D:/CCStudio_Workspace/project0/Common/delay.h:
 D:/CCStudio_Workspace/project0/Drivers/GPIO/gpio.h:
