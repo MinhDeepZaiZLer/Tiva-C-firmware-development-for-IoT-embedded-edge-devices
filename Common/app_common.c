@@ -10,6 +10,7 @@
 #include "mqtt.h"
 #include "uart.h"
 #include "uart1.h"
+#include "adc.h"
 
 void App_Common_DisplaySensorData(float humidity, float temperature,
                                   uint16_t adcValue) {
@@ -182,13 +183,23 @@ void App_Common_MqttPublishLoop(void) {
   while (1) {
     float humidity = 0.0f;
     float temperature = 0.0f;
+    uint16_t adcValue = 0;
 
+    // Read ADC value (light sensor)
+    adcValue = ADC0_Read();
+    system.adcValue = adcValue;
+
+    // Read AM2301B sensor
     if (AM2301B_Read(&humidity, &temperature)) {
-      char json[96];
-      int n = snprintf(json, sizeof(json), "{\"temp\":%.1f,\"hum\":%.1f}",
-                       temperature, humidity);
+      // Create JSON payload for ThingsBoard telemetry
+      char json[128];
+      int n = snprintf(json, sizeof(json), 
+                       "{\"temperature\":%.1f,\"humidity\":%.1f,\"light\":%u}",
+                       temperature, humidity, adcValue);
+      
       if (n > 0) {
-        if (Mqtt_Publish("sensor/am2301b", json)) {
+        // Publish to ThingsBoard telemetry topic
+        if (Mqtt_Publish("v1/devices/me/telemetry", json)) {
           UART0_WriteString("MQTT PUBLISH OK: ");
           UART0_WriteString(json);
           UART0_WriteString("\r\n");
@@ -203,6 +214,9 @@ void App_Common_MqttPublishLoop(void) {
     } else {
       UART0_WriteString("Sensor read error\r\n");
     }
+
+    // Display data on UART0 for debugging
+    App_Common_DisplaySensorData(humidity, temperature, adcValue);
 
     Delay_ms(10000u);
   }
