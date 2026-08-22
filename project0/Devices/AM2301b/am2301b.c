@@ -1,6 +1,7 @@
 #include "i2c0.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include "driverlib/sysctl.h"
 
 
 #define AM2301B_ADDR 0x38
