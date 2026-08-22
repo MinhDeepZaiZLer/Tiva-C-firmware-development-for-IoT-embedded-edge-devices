@@ -14,22 +14,11 @@
 
 void App_Common_DisplaySensorData(float humidity, float temperature,
                                   uint16_t adcValue) {
-  (void)humidity;
-  (void)temperature;
+  char debug[128];
 
-  UART0_WriteString("ADC (Light): ");
-  UART0_WriteChar((adcValue / 1000u) + '0');
-  UART0_WriteChar(((adcValue % 1000u) / 100u) + '0');
-  UART0_WriteChar(((adcValue % 100u) / 10u) + '0');
-  UART0_WriteChar((adcValue % 10u) + '0');
-
-  UART0_WriteString(" | Temp: ");
-  UART0_WriteInt((int32_t)temperature);
-  UART0_WriteString(" *C");
-
-  UART0_WriteString(" | Hum: ");
-  UART0_WriteInt((int32_t)humidity);
-  UART0_WriteString(" %\r\n");
+  snprintf(debug, sizeof(debug), "ADC = %u | Temperature = %.1f | Humidity = %.1f\r\n",
+           (unsigned)adcValue, temperature, humidity);
+  UART0_WriteString(debug);
 }
 
 int App_Common_WiFiConnectAP(void) {
@@ -53,7 +42,7 @@ int App_Common_WiFiConnectAP(void) {
   return 0;
 }
 
-void App_Common_RunEsp8266Sequence(void) {
+int App_Common_RunEsp8266Sequence(void) {
   UART0_WriteString("=== ESP8266 AT Test Start ===\r\n");
 
   Delay_ms(1000u);
@@ -62,7 +51,7 @@ void App_Common_RunEsp8266Sequence(void) {
   // 1. Kiểm tra lệnh AT cơ bản
   if (!AT_Send_Command("AT", "OK", 2000)) {
     UART0_WriteString("AT: FAIL\r\n");
-    return; // Dừng luôn nếu AT không phản hồi
+    return 0;
   }
   UART0_WriteString("AT: OK\r\n");
 
@@ -81,7 +70,7 @@ void App_Common_RunEsp8266Sequence(void) {
   UART1_ClearRxBuffer();
   if (!AT_Send_Command("AT+CWMODE=1", "OK", 3000)) {
     UART0_WriteString("AT+CWMODE=1: FAIL\r\n");
-    return; // Dừng nếu không set được Mode
+    return 0;
   }
   UART0_WriteString("AT+CWMODE=1: OK\r\n");
 
@@ -101,7 +90,7 @@ void App_Common_RunEsp8266Sequence(void) {
   Delay_ms(500u);
   if (!App_Common_WiFiConnectAP()) {
     UART0_WriteString("AT+CWJAP: FAIL\r\n");
-    return;
+    return 0;
   }
   UART0_WriteString("AT+CWJAP: CONNECTED\r\n");
 
@@ -127,15 +116,31 @@ void App_Common_RunEsp8266Sequence(void) {
   } else {
     UART0_WriteString("AT+CIFSR: FAIL\r\n");
   }
+  return got_ip;
 }
 
 int App_Common_MqttConnect(void) {
-  char broker_ip[] = "54.36.178.49";
+  char broker_ip[128];
   const uint16_t broker_port = 1883u;
   char cmd[128];
   char response[256];
 
+  if ((system.tb_host == 0) || (system.device_token == 0) ||
+      (system.tb_host[0] == '\0') || (system.device_token[0] == '\0')) {
+    UART0_WriteString("ThingsBoard host/token is not configured\r\n");
+    return 0;
+  }
+  if ((strncmp(system.tb_host, "REPLACE_WITH_", 13u) == 0) ||
+      (strncmp(system.device_token, "REPLACE_WITH_", 13u) == 0)) {
+    UART0_WriteString("ThingsBoard host/token is still a placeholder\r\n");
+    return 0;
+  }
+  snprintf(broker_ip, sizeof(broker_ip), "%s", system.tb_host);
+
   UART0_WriteString("--> Connecting to MQTT broker...\r\n");
+  UART0_WriteString("Broker: ");
+  UART0_WriteString(broker_ip);
+  UART0_WriteString(":1883\r\n");
   snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"TCP\",\"%s\",%u", broker_ip,
            (unsigned)broker_port);
 
@@ -171,11 +176,11 @@ int App_Common_MqttConnect(void) {
   }
   UART0_WriteString("CIPSTART: OK\r\n");
 
-  if (!Mqtt_Connect("TM4C123", 30)) {
+  if (!Mqtt_Connect("TM4C123", system.device_token, 0, 30)) {
     UART0_WriteString("MQTT CONNECT: FAIL\r\n");
     return 0;
   }
-  UART0_WriteString("MQTT CONNECTED\r\n");
+  UART0_WriteString("MQTT CONNECT OK\r\n");
   return 1;
 }
 
@@ -199,10 +204,11 @@ void App_Common_MqttPublishLoop(void) {
       
       if (n > 0) {
         // Publish to ThingsBoard telemetry topic
-        if (Mqtt_Publish("v1/devices/me/telemetry", json)) {
-          UART0_WriteString("MQTT PUBLISH OK: ");
-          UART0_WriteString(json);
-          UART0_WriteString("\r\n");
+        UART0_WriteString("Topic: v1/devices/me/telemetry\r\nPayload: ");
+        UART0_WriteString(json);
+        UART0_WriteString("\r\n");
+        if (Mqtt_Publish("v1/devices/me/telemetry", json, 0u)) {
+          UART0_WriteString("MQTT PUBLISH OK\r\n");
         } else {
           UART0_WriteString("MQTT PUBLISH FAIL\r\n");
           AT_Send_Command("AT+CIPCLOSE", "OK", 4000);

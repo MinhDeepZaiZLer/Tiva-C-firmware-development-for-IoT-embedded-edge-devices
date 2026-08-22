@@ -65,11 +65,14 @@ int main(void) {
   system.currentState = STATE_IDLE;
   system.sw1 = false;
   system.sw2 = false;
-  float humidity = 0.0;
-  float temperature = 0.0;
+  system.tb_host = "REPLACE_WITH_THINGSBOARD_HOST";
+  system.device_token = "REPLACE_WITH_THINGSBOARD_DEVICE_TOKEN";
   system.adcValue = 0;
 
-  App_Common_RunEsp8266Sequence();
+  if (!App_Common_RunEsp8266Sequence()) {
+    UART0_WriteString("ESP8266 setup failed; MQTT stopped\r\n");
+    return 1;
+  }
 
   if (App_Common_MqttConnect()) {
     App_Common_MqttPublishLoop();

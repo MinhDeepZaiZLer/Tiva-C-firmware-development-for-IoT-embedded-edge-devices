@@ -47,9 +47,12 @@ static int Mqtt_SendPacket(MqttPacket *pkt) {
   return UART1_WaitForPattern("SEND OK", MQTT_RESPONSE_TIMEOUT_MS);
 }
 
-int Mqtt_Connect(const char *client_id, uint16_t keepalive_s) {
+int Mqtt_Connect(const char *client_id, const char *username,
+                 const char *password, uint16_t keepalive_s) {
   MqttPacket pkt;
   uint32_t client_len;
+  uint32_t username_len = 0u;
+  uint32_t password_len = 0u;
   uint32_t remaining_len;
   uint8_t connack[6];
   uint32_t n;
@@ -61,8 +64,20 @@ int Mqtt_Connect(const char *client_id, uint16_t keepalive_s) {
   MqttPacket_Init(&pkt);
 
   client_len = (uint32_t)strlen(client_id);
+  if (username != 0) {
+    username_len = (uint32_t)strlen(username);
+  }
+  if (password != 0) {
+    password_len = (uint32_t)strlen(password);
+  }
   remaining_len = 10u + 2u + client_len;
-  if (remaining_len >= 128u) {
+  if (username_len > 0u) {
+    remaining_len += 2u + username_len;
+  }
+  if (password_len > 0u) {
+    remaining_len += 2u + password_len;
+  }
+  if ((remaining_len >= 128u) || (remaining_len > (sizeof(pkt.bytes) - 2u))) {
     return 0;
   }
 
@@ -71,10 +86,17 @@ int Mqtt_Connect(const char *client_id, uint16_t keepalive_s) {
 
   MqttPacket_Str(&pkt, "MQTT");
   MqttPacket_Byte(&pkt, 0x04u);
-  MqttPacket_Byte(&pkt, 0x02u);
+  MqttPacket_Byte(&pkt, (uint8_t)(0x02u | (username_len > 0u ? 0x80u : 0u) |
+                                  (password_len > 0u ? 0x40u : 0u)));
   MqttPacket_Byte(&pkt, (uint8_t)((keepalive_s >> 8) & 0xFFu));
   MqttPacket_Byte(&pkt, (uint8_t)(keepalive_s & 0xFFu));
   MqttPacket_Str(&pkt, client_id);
+  if (username_len > 0u) {
+    MqttPacket_Str(&pkt, username);
+  }
+  if (password_len > 0u) {
+    MqttPacket_Str(&pkt, password);
+  }
 
   if (!Mqtt_SendPacket(&pkt)) {
     return 0;
@@ -90,12 +112,12 @@ int Mqtt_Connect(const char *client_id, uint16_t keepalive_s) {
   return (connack[2] == 0x00u) ? 1 : 0;
 }
 
-int Mqtt_Publish(const char *topic, const char *payload) {
+int Mqtt_Publish(const char *topic, const char *payload, uint8_t qos) {
   MqttPacket pkt;
   uint32_t remaining_len;
   const char *c;
 
-  if ((topic == 0) || (payload == 0) || (topic[0] == '\0')) {
+  if ((topic == 0) || (payload == 0) || (topic[0] == '\0') || (qos != 0u)) {
     return 0;
   }
 
