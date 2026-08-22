@@ -13,6 +13,8 @@ typedef struct {
   bool sw2;
   uint16_t adcValue;
   int8_t x, y, z;
+  const char *device_token;
+  const char *tb_host;
 } System_t;
 
 extern System_t system;
