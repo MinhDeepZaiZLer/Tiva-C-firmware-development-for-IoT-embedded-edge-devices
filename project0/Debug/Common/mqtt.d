@@ -1,6 +1,0 @@
-# FIXED
-
-Common/mqtt.o: ../Common/mqtt.c ../Common/mqtt.h \
- D:/CCStudio_Workspace/project0/Drivers/UART/uart1.h
-../Common/mqtt.h:
-D:/CCStudio_Workspace/project0/Drivers/UART/uart1.h:

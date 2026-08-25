@@ -31,12 +31,12 @@
 /* modifications in your CCS project and leave this file alone.              */
 /*                                                                           */
 /* --heap_size=0                                                             */
-/* --stack_size=256                                                          */
+/* --stack_size=2048                                                         */
 /* --library=rtsv7M3_T_le_eabi.lib                                           */
 
 /* The starting address of the application.  Normally the interrupt vectors  */
 /* must be located at the beginning of the application.                      */
-#define APP_BASE 0x00000000
+#define APP_BASE 0x00004000
 #define RAM_BASE 0x20000000
 
 /* System memory map */
@@ -44,7 +44,7 @@
 MEMORY
 {
     /* Application stored in and executes from internal flash */
-    FLASH (RX) : origin = APP_BASE, length = 0x00040000
+    FLASH (RX) : origin = APP_BASE, length = 0x0003C000
     /* Application uses internal RAM for data */
     SRAM (RWX) : origin = 0x20000000, length = 0x00008000
 }
@@ -72,4 +72,4 @@ SECTIONS
 #endif
 }
 
-__STACK_TOP = __stack + 256;
+__STACK_TOP = __stack + 2048;

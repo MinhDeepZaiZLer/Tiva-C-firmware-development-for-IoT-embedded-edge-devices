@@ -21,7 +21,7 @@
                 </extensions>
             </storageModule>
             <storageModule moduleId="cdtBuildSystem" version="4.0.0">
-                <configuration artifactExtension="out" artifactName="${ProjName}" buildProperties="" cleanCommand="${CG_CLEAN_CMD}" description="" id="com.ti.ccstudio.buildDefinitions.TMS470.Debug.846920350" name="Debug" parent="com.ti.ccstudio.buildDefinitions.TMS470.Debug" postbuildStep="&quot;${CCE_INSTALL_ROOT}/utils/tiobj2bin/tiobj2bin&quot; &quot;${BuildArtifactFileName}&quot; &quot;${BuildArtifactFileBaseName}.bin&quot; &quot;${CG_TOOL_ROOT}/bin/armofd&quot; &quot;${CG_TOOL_ROOT}/bin/armhex&quot; &quot;${CCE_INSTALL_ROOT}/utils/tiobj2bin/mkhex4bin&quot;">
+                <configuration artifactExtension="out" artifactName="${ProjName}" buildProperties="" cleanCommand="${CG_CLEAN_CMD}" description="" id="com.ti.ccstudio.buildDefinitions.TMS470.Debug.846920350" name="Debug" parent="com.ti.ccstudio.buildDefinitions.TMS470.Debug" postbuildStep="&quot;${CG_TOOL_ROOT}/bin/tiarmobjcopy.exe&quot; -O binary &quot;${BuildArtifactFileName}&quot; &quot;${BuildArtifactFileBaseName}.bin&quot;">
                     <folderInfo id="com.ti.ccstudio.buildDefinitions.TMS470.Debug.846920350." name="/" resourcePath="">
                         <toolChain id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.exe.DebugToolchain.160651251" name="TI Build Tools" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.exe.DebugToolchain" targetTool="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.exe.linkerDebug.1440401062">
                             <option id="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS.358215590" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS" valueType="stringList">
@@ -31,8 +31,8 @@
                                 <listOptionValue value="OUTPUT_FORMAT=ELF"/>
                                 <listOptionValue value="RUNTIME_SUPPORT_LIBRARY=libc.a"/>
                                 <listOptionValue value="CCS_MBS_VERSION=70.0.0"/>
-                                <listOptionValue value="PRODUCTS=tm4c:2.2.0.295;"/>
-                                <listOptionValue value="PRODUCT_MACRO_IMPORTS={&quot;tm4c&quot;:[&quot;${COM_TI_TM4C_INCLUDE_PATH}&quot;,&quot;${COM_TI_TM4C_LIBRARY_PATH}&quot;,&quot;${COM_TI_TM4C_LIBRARIES}&quot;,&quot;${COM_TI_TM4C_SYMBOLS}&quot;,&quot;${COM_TI_TM4C_SYSCONFIG_MANIFEST}&quot;]}"/>
+                                <listOptionValue value="PRODUCTS=TivaWare:2.2.0.295;sysconfig:1.28.0;"/>
+                                <listOptionValue value="PRODUCT_MACRO_IMPORTS={&quot;TivaWare&quot;:[&quot;${COM_TI_TIVAWARE_INCLUDE_PATH}&quot;,&quot;${COM_TI_TIVAWARE_LIBRARY_PATH}&quot;,&quot;${COM_TI_TIVAWARE_LIBRARIES}&quot;,&quot;${COM_TI_TIVAWARE_SYMBOLS}&quot;,&quot;${COM_TI_TIVAWARE_SYSCONFIG_MANIFEST}&quot;],&quot;sysconfig&quot;:[&quot;${SYSCONFIG_TOOL_INCLUDE_PATH}&quot;,&quot;${SYSCONFIG_TOOL_LIBRARY_PATH}&quot;,&quot;${SYSCONFIG_TOOL_LIBRARIES}&quot;,&quot;${SYSCONFIG_TOOL_SYMBOLS}&quot;,&quot;${SYSCONFIG_TOOL_SYSCONFIG_MANIFEST}&quot;]}"/>
                                 <listOptionValue value="OUTPUT_TYPE=executable"/>
                             </option>
                             <option id="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION.1464056805" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION" value="TICLANG_5.1.1.LTS" valueType="string"/>
@@ -47,10 +47,14 @@
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.DEFINE_NON_LOCAL_VARIABLES_IN_THEIR_OWN_SECTIONS.274271281" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.DEFINE_NON_LOCAL_VARIABLES_IN_THEIR_OWN_SECTIONS" value="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.DEFINE_NON_LOCAL_VARIABLES_IN_THEIR_OWN_SECTIONS.FDATA_SECTIONS" valueType="enumerated"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.WALL.364949214" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.WALL" value="true" valueType="boolean"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.DEFINE.1697068624" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.DEFINE" valueType="definedSymbols">
+                                    <listOptionValue value="${COM_TI_TIVAWARE_SYMBOLS}"/>
+                                    <listOptionValue value="${SYSCONFIG_TOOL_SYMBOLS}"/>
                                     <listOptionValue value="PART_TM4C123GH6PM"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.ENDIAN_NESS__BIG_LITTLE.1428984966" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.ENDIAN_NESS__BIG_LITTLE" value="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.ENDIAN_NESS__BIG_LITTLE.MLITTLE_ENDIAN" valueType="enumerated"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.INCLUDE_PATH.1749099291" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.compilerID.INCLUDE_PATH" valueType="includePath">
+                                    <listOptionValue value="${COM_TI_TIVAWARE_INCLUDE_PATH}"/>
+                                    <listOptionValue value="${SYSCONFIG_TOOL_INCLUDE_PATH}"/>
                                     <listOptionValue value="C:\ti\TivaWare_C_Series-2.2.0.295"/>
                                     <listOptionValue value="C:\ti\TivaWare_C_Series-2.2.0.295\inc"/>
                                     <listOptionValue value="${PROJECT_ROOT}/Application"/>
@@ -67,15 +71,16 @@
                             <tool id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.exe.linkerDebug.1440401062" name="Arm Linker" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.exe.linkerDebug">
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.MAP_FILE.1081256348" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.MAP_FILE" value="project0_ccs.map" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.OUTPUT_FILE.336595885" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.OUTPUT_FILE" value="${ProjName}.out" valueType="string"/>
-                                <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.STACK_SIZE.468280327" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.STACK_SIZE" value="256" valueType="string"/>
+                                <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.STACK_SIZE.468280327" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.STACK_SIZE" value="2048" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.LIBRARY.822702867" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.LIBRARY" valueType="libs">
-                                    <listOptionValue value="${COM_TI_TM4C_LIBRARIES}"/>
-                                    <listOptionValue value="${SW_ROOT}/driverlib/ccs/Debug/driverlib.lib"/>
+                                    <listOptionValue value="${COM_TI_TIVAWARE_LIBRARIES}"/>
+                                    <listOptionValue value="${SYSCONFIG_TOOL_LIBRARIES}"/>
                                     <listOptionValue value="libc.a"/>
                                     <listOptionValue value="D:\ti\TivaWare_C_Series-2.2.0.295\driverlib\ccs\Debug\driverlib.lib"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.SEARCH_PATH.394242438" superClass="com.ti.ccstudio.buildDefinitions.TMS470_TICLANG_5.1.linkerID.SEARCH_PATH" valueType="libPaths">
-                                    <listOptionValue value="${COM_TI_TM4C_LIBRARY_PATH}"/>
+                                    <listOptionValue value="${COM_TI_TIVAWARE_LIBRARY_PATH}"/>
+                                    <listOptionValue value="${SYSCONFIG_TOOL_LIBRARY_PATH}"/>
                                     <listOptionValue value="${CG_TOOL_ROOT}/lib"/>
                                     <listOptionValue value="${CG_TOOL_ROOT}/include"/>
                                 </option>
@@ -96,6 +101,9 @@
                             </option>
                         </tool>
                     </fileInfo>
+                    <sourceEntries>
+                        <entry excluding="Bootloader" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
+                    </sourceEntries>
                 </configuration>
             </storageModule>
             <storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
@@ -118,7 +126,7 @@
                 </extensions>
             </storageModule>
             <storageModule moduleId="cdtBuildSystem" version="4.0.0">
-                <configuration artifactExtension="out" artifactName="${ProjName}" buildProperties="" cleanCommand="${CG_CLEAN_CMD}" description="" id="com.ti.ccstudio.buildDefinitions.TMS470.Release.1334283800" name="Release" parent="com.ti.ccstudio.buildDefinitions.TMS470.Release" postbuildStep="&quot;${CCE_INSTALL_ROOT}/utils/tiobj2bin/tiobj2bin&quot; &quot;${BuildArtifactFileName}&quot; &quot;${BuildArtifactFileBaseName}.bin&quot; &quot;${CG_TOOL_ROOT}/bin/armofd&quot; &quot;${CG_TOOL_ROOT}/bin/armhex&quot; &quot;${CCE_INSTALL_ROOT}/utils/tiobj2bin/mkhex4bin&quot;">
+                <configuration artifactExtension="out" artifactName="${ProjName}" buildProperties="" cleanCommand="${CG_CLEAN_CMD}" description="" id="com.ti.ccstudio.buildDefinitions.TMS470.Release.1334283800" name="Release" parent="com.ti.ccstudio.buildDefinitions.TMS470.Release" postbuildStep="&quot;${CG_TOOL_ROOT}/bin/tiarmobjcopy.exe&quot; -O binary &quot;${BuildArtifactFileName}&quot; &quot;${BuildArtifactFileBaseName}.bin&quot;">
                     <folderInfo id="com.ti.ccstudio.buildDefinitions.TMS470.Release.1334283800." name="/" resourcePath="">
                         <toolChain id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.exe.ReleaseToolchain.1640750497" name="TI Build Tools" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.exe.ReleaseToolchain" targetTool="com.ti.ccstudio.buildDefinitions.TMS470_18.12.exe.linkerRelease.1380603320">
                             <option id="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS.471010955" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS" valueType="stringList">
@@ -168,7 +176,7 @@
                             </tool>
                             <tool id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.exe.linkerRelease.1380603320" name="ARM Linker" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.exe.linkerRelease">
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.MAP_FILE.973523127" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.MAP_FILE" value="project0_ccs.map" valueType="string"/>
-                                <option id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.STACK_SIZE.222501098" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.STACK_SIZE" value="256" valueType="string"/>
+                                <option id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.STACK_SIZE.222501098" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.STACK_SIZE" value="2048" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.HEAP_SIZE.770654152" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.HEAP_SIZE" value="0" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.OUTPUT_FILE.1341852323" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.OUTPUT_FILE" value="${ProjName}.out" valueType="string"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.XML_LINK_INFO.375854268" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.linkerID.XML_LINK_INFO" value="${ProjName}_linkInfo.xml" valueType="string"/>
@@ -191,6 +199,9 @@
                             <tool id="com.ti.ccstudio.buildDefinitions.TMS470_18.12.hex.1237461491" name="ARM Hex Utility" superClass="com.ti.ccstudio.buildDefinitions.TMS470_18.12.hex"/>
                         </toolChain>
                     </folderInfo>
+                    <sourceEntries>
+                        <entry excluding="Bootloader" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
+                    </sourceEntries>
                 </configuration>
             </storageModule>
             <storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
