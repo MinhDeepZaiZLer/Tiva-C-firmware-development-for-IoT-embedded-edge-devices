@@ -1,0 +1,23 @@
+#ifndef CONFIG_USER_H_
+#define CONFIG_USER_H_
+
+/*
+ * Private configuration template.
+ *
+ * 1. Copy this file:      copy Common\config_user.h.example Common\config_user.h
+ * 2. Fill in real values below.
+ * 3. Never commit config_user.h - it is listed in .gitignore.
+ */
+
+#define CONFIG_WIFI_SSID     "your_wifi_ssid"
+#define CONFIG_WIFI_PASSWORD "your_wifi_password"
+
+/* ThingsBoard Cloud */
+#define CONFIG_TB_HOST       "mqtt.eu.thingsboard.cloud"
+#define CONFIG_TB_TOKEN      "your_device_access_token"
+
+/* Firmware identity reported during OTA */
+#define CONFIG_FW_TITLE       "project0"
+#define CONFIG_FW_VERSION     "1.0.0"
+
+#endif
