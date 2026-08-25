@@ -1,18 +1,28 @@
 #include "adc.h"
 #include "tm4c123gh6pm.h"
+#include "uart.h"
 
 void ADC0_Init(void) {
 
   // enable clock for ADC0 and GPIO port E
   SYSCTL_RCGCADC_R |= (1 << 0);
   SYSCTL_RCGCGPIO_R |= (1 << 4); // 0x10 = 4 => Port E
-  // wait until ready
 
-  while ((SYSCTL_RCGCADC_R & (1 << 0)) == 0)
+  // wait until peripherals are ready (PRADC/PRGPIO, NOT RCGC - reading RCGC
+  // only echoes the written enable bit and exits before the clock is active).
+  // Timeout so a stuck ready bit can never hang the whole application.
+  uint32_t timeout = 100000u;
+  while (((SYSCTL_PRADC_R & (1 << 0)) == 0) && (--timeout != 0u))
     ;
+  if (timeout == 0u) {
+    UART0_WriteString("[BOOT] WARNING: PRADC never set!\r\n");
+  }
 
-  while ((SYSCTL_RCGCGPIO_R & (1 << 4)) == 0)
+  while (((SYSCTL_PRGPIO_R & (1 << 4)) == 0) && (--timeout != 0u))
     ;
+  if (timeout == 0u) {
+    UART0_WriteString("[BOOT] WARNING: PRGPIO(PortE) never set!\r\n");
+  }
 
   GPIO_PORTE_AFSEL_R |= (1 << 3); // Bật chức năng Alternate function cho PE3
   GPIO_PORTE_DEN_R &= ~(1 << 3);  // Tắt chức năng kỹ thuật số (Digital) tại PE3
