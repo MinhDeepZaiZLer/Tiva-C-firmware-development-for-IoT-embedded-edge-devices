@@ -1,0 +1,16 @@
+# Private credentials - never commit
+Common/config_user.h
+
+# CCS build output
+Debug/
+Bootloader/*.o
+Bootloader/*.out
+Bootloader/*.map
+Bootloader/*.d
+Bootloader/*.bin
+
+# IDE / tooling junk
+.vscode/
+.settings/
+*.log
+.clangd/
