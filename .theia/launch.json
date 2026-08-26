@@ -38,7 +38,7 @@
                         {
                             "name": "CORTEX_M4_0",
                             "debuggerSettings": {
-                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues>\n\n  <property id=\"FlashEraseType\">\n    <curValue>Entire Flash</curValue>\n  </property>\n\n</PropertyValues>\n"
+                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues>\n\n  <property id=\"FlashProgramOption\">\n    <curValue>Necessary Pages Only</curValue>\n  </property>\n\n  <property id=\"FlashEraseType\">\n    <curValue>Entire Flash</curValue>\n  </property>\n\n  <property id=\"FlashFiles\">\n    <curValue></curValue>\n  </property>\n\n</PropertyValues>\n"
                             }
                         }
                     ]
