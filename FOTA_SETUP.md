@@ -77,6 +77,16 @@ The MQTT API additions are in:
   (`App_Common_DelayWithPolling`) instead of blocking, and sends PINGREQ every
   15 s to keep the 30 s keepalive session alive.
 
+### Step B completed - report OTA state
+
+- On MQTT connect the device publishes client attributes
+  `current_fw_title` / `current_fw_version` (from `config_user.h`) so
+  ThingsBoard shows which firmware is running.
+- `App_Ota_ReportState()` publishes `{"fw_state":"..."}` to
+  `v1/devices/me/attributes`. Receiving valid OTA metadata reports
+  DOWNLOADING; later steps will chain DOWNLOADED, VERIFIED, UPDATING,
+  UPDATED and FAILED.
+
 ### Credentials moved out of source control
 
 WiFi SSID/password and the ThingsBoard device token are no longer hardcoded:

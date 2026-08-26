@@ -26,4 +26,7 @@ void App_Ota_ProcessMessage(const MqttMessage *msg);
 int App_Ota_HasPendingFirmware(void);
 const App_OtaMetadataView *App_Ota_GetMetadata(void);
 
+// OTA state reporting (FOTA Step B)
+void App_Ota_ReportState(const char *fw_state);
+
 #endif
