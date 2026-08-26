@@ -17,6 +17,19 @@ void UART1_ClearRxBuffer(void);
 // Read an ESP8266 "+IPD,<len>:<data>" payload block into data[].
 uint32_t UART1_ReadIpdData(uint8_t *data, uint32_t data_size,
                            uint32_t timeout_ms);
+// Pop raw buffered bytes verbatim (no +IPD framing) - for continuation
+// segments that old AT firmware sends without a new header.
+uint32_t UART1_ReadContinuation(uint8_t *data, uint32_t data_size,
+                                uint32_t timeout_ms);
+// Streaming reader for "+IPD,<len>:<data>" frames whose state persists
+// across calls - safe against headers split across read boundaries.
+uint32_t UART1_ReadTcpBytes(uint8_t *data, uint32_t data_size,
+                            uint32_t timeout_ms);
+void UART1_IpdStreamReset(void);
+// Park bytes captured incidentally so the next framed read returns them.
+void UART1_PrependBytes(const uint8_t *data, uint32_t len);
+// Nonzero once the ESP8266 "SEND OK" text passed through the stream reader.
+uint8_t UART1_SendOkSeen(void);
 int AT_Send_Command(const char *cmd, const char *expected_resp, uint32_t timeout_ms);
 int UART1_CaptureResponse(char *dst, uint32_t dst_size, const char *term, uint32_t timeout_ms);
 void UART1_GetRxBufferData(char *dst, uint32_t dst_size);
