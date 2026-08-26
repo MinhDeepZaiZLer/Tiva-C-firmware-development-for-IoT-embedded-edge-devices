@@ -92,11 +92,21 @@ int main(void) {
   }
 
   UART0_WriteString("--> Starting MQTT connection...\r\n");
-  if (App_Common_MqttConnect()) {
-    App_Common_MqttPublishLoop();
-  } else {
-    UART0_WriteString("MQTT connection failed; stopped\r\n");
+  {
+    int failures = 0;
+    while (!App_Common_MqttConnect()) {
+      failures++;
+      // After a few TCP failures, re-run the whole WiFi association - the
+      // hotspot may have dropped us or DHCP may have gone stale.
+      if ((failures % 3) == 0) {
+        UART0_WriteString("Re-running WiFi association...\r\n");
+        App_Common_RunEsp8266Sequence();
+      }
+      UART0_WriteString("MQTT connection failed; retrying in 5s\r\n");
+      Delay_ms(5000u);
+    }
   }
+  App_Common_MqttPublishLoop();
 
   //   LCD_Command(0x01);
   Delay_ms(10u);
