@@ -127,6 +127,7 @@ void UART1_ClearRxBuffer(void) {
   rx_head = 0u;
   rx_tail = 0u;
   rx_buffer_overflow = false;
+  UART1_IpdStreamReset();
 
   UART1_IM_R |= 0x50u;
 }
@@ -348,6 +349,156 @@ uint32_t UART1_ReadIpdData(uint8_t *data, uint32_t data_size,
     elapsed_ms++;
   }
 
+  return written;
+}
+
+// Pop raw buffered bytes verbatim (no +IPD framing). Old NonOS AT firmware
+// delivers continuation segments of one TCP receive as bare bytes, so MQTT
+// reassembly needs a framing-free read path.
+uint32_t UART1_ReadContinuation(uint8_t *data, uint32_t data_size,
+                                uint32_t timeout_ms) {
+  uint32_t written = 0u;
+  uint32_t elapsed_ms = 0u;
+
+  while ((written < data_size) && (elapsed_ms < timeout_ms)) {
+    char ch;
+    if (UART1_ReadByteTimeout(&ch, 1u) != 0) {
+      data[written++] = (uint8_t)ch;
+    } else if (written > 0u) {
+      // Stream paused after delivering something - natural stop point.
+      break;
+    } else {
+      elapsed_ms++;
+    }
+  }
+  return written;
+}
+
+// ---------------------------------------------------------------------------
+// TCP stream reader with persistent framing state.
+//
+// ESP8266 delivers socket data as "+IPD,<len>:<data>" frames, but headers and
+// payload can be split across any number of reads at arbitrary byte
+// boundaries. A parser with local state therefore loses sync whenever a read
+// times out mid-header (observed as corrupted/truncated MQTT payloads), so
+// this state machine keeps its position across calls.
+// ---------------------------------------------------------------------------
+#define IPD_TAG_LEN 5u
+#define SEND_OK_TAG_LEN 7u
+
+typedef struct {
+  uint8_t mode;          // 0 = scanning for tag, 1 = length digits, 2 = data
+  char hdr[IPD_TAG_LEN]; // sliding window of recent bytes while scanning
+  uint32_t hdr_len;
+  uint32_t remaining;
+  char ok_win[SEND_OK_TAG_LEN]; // sliding window watching for "SEND OK"
+  uint32_t ok_len;
+  uint8_t send_ok;
+} Uart1IpdState;
+
+static Uart1IpdState g_ipd = {0u, {'\0'}, 0u, 0u, {'\0'}, 0u, 0u};
+
+// Bytes captured while pumping the send-completion wait are parked here so
+// the next framed read hands them out first instead of losing them.
+static uint8_t g_prebuf[128];
+static uint32_t g_prebuf_len = 0u;
+static uint32_t g_prebuf_pos = 0u;
+
+void UART1_IpdStreamReset(void) {
+  g_ipd.mode = 0u;
+  g_ipd.hdr_len = 0u;
+  g_ipd.remaining = 0u;
+  g_ipd.ok_len = 0u;
+  g_ipd.send_ok = 0u;
+  g_prebuf_len = 0u;
+  g_prebuf_pos = 0u;
+}
+
+void UART1_PrependBytes(const uint8_t *data, uint32_t len) {
+  if (len > sizeof(g_prebuf)) {
+    uint32_t drop = len - sizeof(g_prebuf);
+    data += drop;
+    len = sizeof(g_prebuf);
+  }
+  memcpy(g_prebuf, data, len);
+  g_prebuf_len = len;
+  g_prebuf_pos = 0u;
+}
+
+uint8_t UART1_SendOkSeen(void) { return g_ipd.send_ok; }
+
+static void Uart1_ScanWatch(const char ch) {
+  if (g_ipd.ok_len >= SEND_OK_TAG_LEN) {
+    memmove(g_ipd.ok_win, &g_ipd.ok_win[1], SEND_OK_TAG_LEN - 1u);
+    g_ipd.ok_len = SEND_OK_TAG_LEN - 1u;
+  }
+  g_ipd.ok_win[g_ipd.ok_len++] = ch;
+  if ((g_ipd.ok_len == SEND_OK_TAG_LEN) &&
+      (memcmp(g_ipd.ok_win, "SEND OK", SEND_OK_TAG_LEN) == 0)) {
+    g_ipd.send_ok = 1u;
+  }
+}
+
+uint32_t UART1_ReadTcpBytes(uint8_t *data, uint32_t data_size,
+                            uint32_t timeout_ms) {
+  uint32_t written = 0u;
+  uint32_t idle_ms = 0u;
+
+  if ((data == 0) || (data_size == 0u)) {
+    return 0u;
+  }
+
+  while (written < data_size) {
+    char ch;
+
+    // Pre-buffered bytes were already unwrapped from their +IPD frame when
+    // captured - hand them straight out, never through the parser again.
+    if (g_prebuf_pos < g_prebuf_len) {
+      data[written++] = g_prebuf[g_prebuf_pos++];
+      idle_ms = 0u;
+      continue;
+    }
+
+    if (idle_ms >= timeout_ms) {
+      break;
+    }
+
+    if (UART1_ReadByteTimeout(&ch, 1u) == 0) {
+      idle_ms++;
+      continue;
+    }
+    idle_ms = 0u;
+
+    if (g_ipd.mode == 2u) {
+      data[written++] = (uint8_t)ch;
+      g_ipd.remaining--;
+      if (g_ipd.remaining == 0u) {
+        g_ipd.mode = 0u;
+        g_ipd.hdr_len = 0u;
+      }
+    } else if (g_ipd.mode == 1u) {
+      if ((ch >= '0') && (ch <= '9')) {
+        g_ipd.remaining = (g_ipd.remaining * 10u) + (uint32_t)(ch - '0');
+      } else if (ch == ':') {
+        g_ipd.mode = 2u;
+      } else {
+        UART1_IpdStreamReset(); // malformed header - resync
+      }
+    } else {
+      if (g_ipd.hdr_len < IPD_TAG_LEN) {
+        g_ipd.hdr[g_ipd.hdr_len++] = ch;
+      } else {
+        memmove(g_ipd.hdr, &g_ipd.hdr[1], IPD_TAG_LEN - 1u);
+        g_ipd.hdr[IPD_TAG_LEN - 1u] = ch;
+      }
+      if ((g_ipd.hdr_len == IPD_TAG_LEN) &&
+          (memcmp(g_ipd.hdr, "+IPD,", IPD_TAG_LEN) == 0)) {
+        g_ipd.mode = 1u;
+        g_ipd.remaining = 0u;
+      }
+      Uart1_ScanWatch(ch);
+    }
+  }
   return written;
 }
 
