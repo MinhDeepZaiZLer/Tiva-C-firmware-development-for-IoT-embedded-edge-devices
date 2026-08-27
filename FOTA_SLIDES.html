@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOTA System — TM4C123GH6PM + ESP8266 + ThingsBoard Cloud</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/white.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/monokai.min.css">
+<style>
+  .reveal h1 { font-size: 1.8em; }
+  .reveal h2 { font-size: 1.4em; }
+  .reveal h3 { font-size: 1.1em; }
+  .reveal table { font-size: 0.7em; margin: 10px auto; border-collapse: collapse; }
+  .reveal table th, .reveal table td { border: 1px solid #666; padding: 6px 12px; text-align: left; }
+  .reveal table th { background: #2d2d2d; color: #f8f8f2; }
+  .reveal pre { width: 100%; font-size: 0.55em; margin: 8px 0; }
+  .reveal code { font-size: 0.8em; }
+  .reveal .ascii { font-family: monospace; font-size: 0.6em; text-align: left; line-height: 1.4; }
+  .reveal .red { color: #e74c3c; font-weight: bold; }
+  .reveal .green { color: #27ae60; font-weight: bold; }
+  .reveal .blue { color: #2980b9; font-weight: bold; }
+  .reveal .orange { color: #e67e22; font-weight: bold; }
+  .reveal .small { font-size: 0.75em; }
+  .reveal .tiny { font-size: 0.65em; color: #666; }
+  .reveal .cols { display: flex; gap: 20px; }
+  .reveal .cols > div { flex: 1; }
+  .slide-number { font-size: 12px !important; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ========== SLIDE 1: TITLE ========== -->
+<section>
+  <h1>FOTA for TM4C123GH6PM</h1>
+  <h3 style="color:#555">ESP8266 + ThingsBoard Cloud</h3>
+  <br>
+  <p class="small">Step-by-Step Firmware-Over-The-Air Pipeline</p>
+  <p class="small">Verified on Hardware &middot; v1.0.3</p>
+  <br>
+  <p class="tiny">38 commits &middot; 3,140 lines &middot; 42 source files &middot; Steps A–D complete</p>
+</section>
+
+<!-- ========== SLIDE 2: AGENDA ========== -->
+<section>
+  <h2>Agenda</h2>
+  <table>
+    <tr><th>#</th><th>Section</th></tr>
+    <tr><td>1</td><td>What is FOTA &amp; Why it is Hard</td></tr>
+    <tr><td>2</td><td>Hardware &amp; System Architecture</td></tr>
+    <tr><td>3</td><td>Flash Memory Layout</td></tr>
+    <tr><td>4</td><td>Overall FOTA Flow</td></tr>
+    <tr><td>5</td><td>Step A — Receive Metadata</td></tr>
+    <tr><td>6</td><td>Step B — Report OTA State</td></tr>
+    <tr><td>7</td><td>Step C — MQTT Chunk Downloader</td></tr>
+    <tr><td>8</td><td>Step D — Bootloader Swap</td></tr>
+    <tr><td>9</td><td>Incidents &amp; Fixes</td></tr>
+    <tr><td>10</td><td>Build &amp; Flash Procedure</td></tr>
+    <tr><td>11</td><td>Test Results &amp; Lessons Learned</td></tr>
+  </table>
+</section>
+
+<!-- ========== SLIDE 3: WHAT IS FOTA ========== -->
+<section>
+  <h2>What is FOTA?</h2>
+  <p><b>Firmware Over-The-Air</b> — update embedded software remotely via WiFi, no physical access required.</p>
+  <br>
+  <p><b>Analogy:</b> Like your phone updating apps over WiFi.</p>
+  <p><b>Reality:</b> The device is "running the firmware it needs to update".</p>
+  <br>
+  <p class="small"><span class="red">Core problem:</span> Flash is execute-in-place. You cannot overwrite the code you are currently executing.</p>
+  <p class="small"><span class="green">Solution:</span> Staged regions + a bootloader that runs <em>before</em> the application.</p>
+</section>
+
+<!-- ========== SLIDE 4: WHY HARD ========== -->
+<section>
+  <h2>Why FOTA is Hard</h2>
+  <div class="cols">
+    <div>
+      <p><b>Constraint 1:</b> Flash cannot self-overwrite</p>
+      <p class="small">Must erase sector first (destructive), then program. Running code in that sector → crash.</p>
+      <br>
+      <p><b>Constraint 2:</b> Power loss at any moment</p>
+      <p class="small">Partial write → corrupted image. Must guarantee old firmware survives.</p>
+    </div>
+    <div>
+      <p><b>Constraint 3:</b> Limited RAM (32 KB)</p>
+      <p class="small">Cannot buffer entire firmware image in RAM. Must stream to flash.</p>
+      <br>
+      <p><b>Constraint 4:</b> Unreliable network</p>
+      <p class="small">WiFi drops, TCP segments split. Must resume, not restart.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 5: HARDWARE ========== -->
+<section>
+  <h2>Hardware Components</h2>
+  <table>
+    <tr><th>Component</th><th>Role</th><th>Interface</th></tr>
+    <tr><td><b>TM4C123GH6PM</b></td><td>ARM Cortex-M4 MCU (256 KB flash, 32 KB SRAM)</td><td>UART0 (debug), UART1 (ESP8266)</td></tr>
+    <tr><td><b>ESP8266</b></td><td>WiFi module — AT command firmware</td><td>UART1 ↔ TM4C; WiFi ↔ ThingsBoard</td></tr>
+    <tr><td><b>ThingsBoard PE</b></td><td>Cloud IoT platform — MQTT broker + OTA mgmt</td><td>MQTT over TCP (port 1883)</td></tr>
+    <tr><td><b>AM2301B</b></td><td>Temperature + humidity sensor</td><td>I2C0</td></tr>
+    <tr><td><b>ADC (PE3/AIN0)</b></td><td>Ambient light sensor</td><td>ADC0</td></tr>
+  </table>
+</section>
+
+<!-- ========== SLIDE 5b: ARCHITECTURE ========== -->
+<section>
+  <h2>System Architecture</h2>
+  <pre class="ascii">
+┌─────────────────────────────────────────────────────────────┐
+│                    ThingsBoard Cloud                        │
+│   mqtt.eu.thingsboard.cloud:1883 (plain MQTT, QoS 0/1)    │
+│                                                             │
+│   OTA Package: project0 v1.0.3                              │
+│   Shared Attributes: fw_title, fw_version, fw_size, ...     │
+│   Chunk API: v2/fw/request/0/chunk/&lt;index&gt;                 │
+└────────────────────────┬────────────────────────────────────┘
+                         │ WiFi (TCP/MQTT)
+┌────────────────────────┴────────────────────────────────────┐
+│  ESP8266  (AT command firmware, UART1 115200 baud)          │
+│  AT+CIPSTART → AT+CIPSEND → +IPD stream                     │
+└────────────────────────┬────────────────────────────────────┘
+                         │ UART1 (interrupt-driven, +IPD state machine)
+┌────────────────────────┴────────────────────────────────────┐
+│  TM4C123GH6PM  (Application firmware @ 0x4000)              │
+│                                                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ UART0    │  │ MQTT     │  │ OTA      │  │ Sensor   │   │
+│  │ Debug    │  │ Client   │  │ FOTA     │  │ AM2301B  │   │
+│  │ Console  │  │ 3.1.1    │  │ Pipeline │  │ ADC      │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Bootloader @ 0x0000 (3.3 KB)                         │  │
+│  │ Validate staging → Erase app → Copy → Jump            │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘</pre>
+</section>
+
+<!-- ========== SLIDE 6: ESP8266 AT ========== -->
+<section>
+  <h2>ESP8266 AT Command Primer</h2>
+  <p class="small">ESP8266 does not run user code. All networking is done via AT commands:</p>
+  <pre><code class="language-bash">AT                          # → "OK" — alive check
+AT+CWMODE=1                 # Station mode
+AT+CWJAP="SSID","PASS"      # Join WiFi AP
+AT+CIFSR                    # Get IP address
+AT+CIPSTART="TCP","host",1883  # Open TCP socket
+AT+CIPSEND=10               # Prepare 10 bytes of data
+# → ">" prompt → send raw bytes → "SEND OK"
+# Incoming data arrives as: +IPD,&lt;len&gt;:&lt;data&gt;</code></pre>
+  <p class="small"><b>Key quirk:</b> ESP8266 NonOS AT firmware splits large TCP receives across multiple <code>+IPD</code> frames, and sometimes sends raw continuation bytes without <code>+IPD</code> header.</p>
+</section>
+
+<!-- ========== SLIDE 7: FLASH LAYOUT ========== -->
+<section>
+  <h2>Flash Memory Layout</h2>
+  <pre class="ascii">
+ 256 KB total flash on TM4C123GH6PM:
+
+ 0x00000 ┌─────────────────────────────┐
+         │   BOOTLOADER (3.3 KB)       │  0x0000 – 0x3FFF
+         │   Runs first on every reset  │
+         │   Checks staging → swaps    │
+         └─────────────────────────────┘
+ 0x04000 ┌─────────────────────────────┐
+         │   APPLICATION (30 KB)        │  0x4000 – 0xBFFF
+         │   Sensors, MQTT, FOTA logic  │
+         └─────────────────────────────┘
+ 0x10000 ┌─────────────────────────────┐
+         │   STAGING HEADER (1 KB)      │  0x10000 – 0x103FF
+         │   magic + size + SHA-256     │
+ 0x10400 ├─────────────────────────────┤
+         │   STAGING IMAGE (30 KB)      │  0x10400 – 0x17FFF
+         │   Downloaded firmware         │
+         └─────────────────────────────┘</pre>
+</section>
+
+<!-- ========== SLIDE 8: WHY SPLIT ========== -->
+<section>
+  <h2>Why Split Flash?</h2>
+  <div class="cols">
+    <div>
+      <p><b>Bootloader runs first</b></p>
+      <p class="small">Even if app is corrupted, bootloader still works — can recover with next upload.</p>
+      <br>
+      <p><b>App never self-erases</b></p>
+      <p class="small">Erasing flash destroys executing code. Download to staging (separate region), let bootloader copy.</p>
+    </div>
+    <div>
+      <p><b>Staging isolated</b></p>
+      <p class="small">Power loss during download → staging is corrupt, but old app is untouched → bootloader skips swap.</p>
+      <br>
+      <p><b>Header as signal</b></p>
+      <p class="small">Writing the header at 0x10000 is the <em>last</em> step — an atomic "new image ready" flag.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 9: CONSTANTS ========== -->
+<section>
+  <h2>Key Constants in Code</h2>
+  <pre><code class="language-c">// Common/ota.c
+#define OTA_STAGING_BASE  0x00010000u   // staging region start
+#define OTA_IMAGE_BASE    0x00010400u   // image start (sector-aligned, after header)
+#define OTA_CHUNK_SIZE    1024u         // bytes per MQTT chunk request
+#define OTA_SWAP_MAGIC    0x53574150u   // "SWAP" — marks valid staged image
+#define APP_BASE_ADDR     0x00004000u   // application base
+#define APP_MAX_SIZE      0x0000E000u   // 56 KB upper bound for checksum scan
+
+// Bootloader/bootloader.c
+#define STAGING_BASE      0x00010000u   // must match ota.c
+#define IMAGE_BASE        0x00010400u   // must match ota.c
+#define SWAP_MAGIC        0x53574150u   // must match ota.c
+#define BOOT_APP_BASE     0x00004000u   // app region start
+#define BOOT_FLASH_END    0x00040000u   // end of flash (256 KB)</code></pre>
+  <p class="small"><span class="red">These must match exactly between ota.c and bootloader.c.</span> A single mismatch → silent corruption.</p>
+</section>
+
+<!-- ========== SLIDE 10: OVERALL FLOW ========== -->
+<section>
+  <h2>Overall FOTA Flow</h2>
+  <pre class="ascii">
+TB assigns firmware 1.0.3 to device
+    ↓
+TB pushes shared attributes: fw_title, fw_version, fw_size, fw_checksum...
+    ↓
+[STEP A] APP receives metadata via MQTT PUBLISH
+    ↓
+[STEP B] APP reports DOWNLOADING to TB
+    ↓
+[STEP C] APP downloads firmware via MQTT chunk API
+         → writes flash staging (0x10400)
+         → SHA-256 streaming verify
+    ↓
+[STEP B] APP reports DOWNLOADED → VERIFIED
+    ↓
+[STEP C] APP writes HEADER at 0x10000
+         (magic + size + SHA-256 = "new image ready")
+    ↓
+[STEP D] BOOTLOADER runs (on reset)
+         → reads HEADER at 0x10000
+         → sees SWAP_MAGIC → valid
+         → erases app (0x4000)
+         → copies staging (0x10400) → app (0x4000)
+         → clears HEADER (prevents swap loop)
+         → jumps to new app
+    ↓
+[STEP B] APP reports UPDATED to TB
+         → version matches CONFIG_FW_VERSION → no re-download
+         → loop ends</pre>
+</section>
+
+<!-- ========== SLIDE 11: STEP A — PACKET REASSEMBLY ========== -->
+<section>
+  <h2>Step A — Packet Reassembly</h2>
+  <p class="small">ESP8266 splits MQTT PUBLISH packets across multiple <code>+IPD</code> frames:</p>
+  <pre><code class="language-bash">+IPD,50:&lt;mqtt-header-10-byte + 10-byte payload part 1&gt;
++IPD,40:&lt;30-byte payload part 2&gt;
+# Sometimes arrives as raw bytes (no +IPD header) — NonOS AT quirk</code></pre>
+  <p class="small"><b>3-mode persistent state machine</b> in <code>UART1_ReadTcpBytes()</code>:</p>
+  <pre><code class="language-c">// Drivers/UART/uart1.c — state machine
+typedef struct {
+  uint8_t mode;       // 0 = scanning for tag, 1 = length digits, 2 = data
+  char hdr[5];        // sliding window for "+IPD," detection
+  uint32_t remaining; // bytes left in current frame
+  char ok_win[7];     // sliding window for "SEND OK" detection
+  uint8_t send_ok;    // flag set when "SEND OK" seen
+} Uart1IpdState;</code></pre>
+  <p class="small">Handles: split headers, raw continuation bytes, overlapping <code>SEND OK</code>.</p>
+</section>
+
+<!-- ========== SLIDE 11b: MQTT REASSEMBLY ========== -->
+<section>
+  <h2>MQTT PUBLISH Reassembly</h2>
+  <pre><code class="language-c">// Common/mqtt.c — Mqtt_CompletePublish()
+// Reads +IPD chunks into mqtt_rx_raw[2048] until the PUBLISH packet
+// whose header is already buffered is complete.
+static uint32_t Mqtt_CompletePublish(uint32_t n, uint32_t timeout_ms) {
+  while (n < sizeof(mqtt_rx_raw)) {
+    int status = Mqtt_DecodePublishLen(mqtt_rx_raw, n, &total);
+    if ((status > 0) && (total <= n))
+      break;           // fully buffered — parse it
+    // ...read more +IPD chunks...
+    got = UART1_ReadTcpBytes(mqtt_rx_raw + n, ...);
+    n += got;
+  }
+  return n;
+}</code></pre>
+  <p class="small">This ensures the full PUBLISH packet is in <code>mqtt_rx_raw</code> before parsing topic + payload.</p>
+</section>
+
+<!-- ========== SLIDE 12: STEP A — METADATA PARSE ========== -->
+<section>
+  <h2>Step A — Metadata Parse</h2>
+  <pre><code class="language-c">// Common/ota.c — App_Ota_ProcessMessage()
+void App_Ota_ProcessMessage(const MqttMessage *msg) {
+  if (strstr(msg->topic, "attributes") == 0) return;  // only process attributes
+
+  // Extract fw_* fields — handles BOTH flat and {"shared":{...}} formats
+  App_JsonCopyString(ota_metadata.title, ..., msg->payload, "fw_title");
+  App_JsonCopyString(ota_metadata.version, ..., msg->payload, "fw_version");
+  App_JsonCopyString(ota_metadata.checksum, ..., msg->payload, "fw_checksum");
+  App_JsonCopyString(ota_metadata.url, ..., msg->payload, "fw_url");
+  App_JsonGetUint(msg->payload, "fw_size", &ota_metadata.size);
+
+  // fw_url is typically absent — TB Cloud doesn't push it
+  // → code falls back to MQTT chunk API
+  if (ota_metadata.url[0] != '\0') {
+    UART0_WriteString("OTA: url ");
+    UART0_WriteString(ota_metadata.url);
+  } else {
+    UART0_WriteString("OTA: no fw_url - using MQTT chunk download");
+  }
+  ota_metadata_valid = 1;
+  App_Ota_ReportState("DOWNLOADING");
+  App_Ota_DownloadFirmware();
+}</code></pre>
+</section>
+
+<!-- ========== SLIDE 13: STEP A — SUBSCRIPTION ========== -->
+<section>
+  <h2>Step A — Subscription &amp; Request</h2>
+  <pre><code class="language-c">// Common/app_connect.c — App_Common_MqttConnect()
+Mqtt_Subscribe("v1/devices/me/attributes", 1u);  // QoS 1
+
+App_Ota_ReportCurrentFirmware();  // publish current fw info to TB
+
+// Request OTA metadata from TB:
+Mqtt_Publish(
+  "v1/devices/me/attributes/request/1",
+  "{\"sharedKeys\":\"fw_title,fw_version,fw_size,"
+  "fw_checksum,fw_checksum_algorithm,fw_url\"}",
+  0u);  // QoS 0
+
+// Wait for response (8 second timeout):
+Mqtt_ReadPublish(&ota_msg, 8000u);
+App_Ota_ProcessMessage(&ota_msg);</code></pre>
+  <p class="small"><b>Key:</b> TB Cloud does NOT push <code>fw_url</code> — code uses MQTT chunk API instead of HTTP download.</p>
+</section>
+
+<!-- ========== SLIDE 14: STEP B — CURRENT FIRMWARE ========== -->
+<section>
+  <h2>Step B — Report Current Firmware</h2>
+  <pre><code class="language-c">// Common/ota.c — App_Ota_ReportCurrentFirmware()
+void App_Ota_ReportCurrentFirmware(void) {
+  Sha256_Ctx sha;
+  uint8_t digest[32];
+
+  // Compute SHA-256 over the running application image
+  Sha256_Init(&sha);
+  for (i = 0u; i < APP_MAX_SIZE; i += 256u) {
+    Sha256_Update(&sha, (const uint8_t *)(APP_BASE_ADDR + i), 256u);
+  }
+  Sha256_Final(&sha, digest);
+
+  // Convert to hex string
+  // ...
+
+  snprintf(json, sizeof(json),
+    "{\"current_fw_title\":\"%s\","
+    "\"current_fw_version\":\"%s\","
+    "\"current_fw_checksum\":\"%s\"}",
+    CONFIG_FW_TITLE, CONFIG_FW_VERSION, cs_hex);
+
+  Mqtt_Publish("v1/devices/me/attributes", json, 1u);
+}</code></pre>
+  <p class="small">Published on MQTT connect. TB compares <code>current_fw_version</code> and <code>current_fw_checksum</code> against assigned package.</p>
+</section>
+
+<!-- ========== SLIDE 15: STEP B — STATE MACHINE ========== -->
+<section>
+  <h2>Step B — OTA State Reporting</h2>
+  <pre><code class="language-c">void App_Ota_ReportState(const char *fw_state) {
+  char json[64];
+  snprintf(json, sizeof(json), "{\"fw_state\":\"%s\"}", fw_state);
+  Mqtt_Publish("v1/devices/me/attributes", json, 1u);
+}</code></pre>
+  <br>
+  <table>
+    <tr><th>State</th><th>When</th><th>Significance</th></tr>
+    <tr><td><code>DOWNLOADING</code></td><td>After metadata parsed, before chunk loop</td><td>TB shows "downloading" status</td></tr>
+    <tr><td><code>DOWNLOADED</code></td><td>All chunks received, SHA-256 verify pending</td><td>Image in staging, not yet verified</td></tr>
+    <tr><td><code>VERIFIED</code></td><td>SHA-256 matches, header written at 0x10000</td><td>Image ready for bootloader swap</td></tr>
+    <tr><td><code>UPDATED</code></td><td>After swap (or version already matched)</td><td>Cycle complete, no re-download</td></tr>
+    <tr><td><code>FAILED</code></td><td>Any error: bad checksum, flash write fail, timeout</td><td>Requires manual intervention</td></tr>
+  </table>
+</section>
+
+<!-- ========== SLIDE 16: STEP C — 4 LAYERS ========== -->
+<section>
+  <h2>Step C — Download Pipeline (4 Layers)</h2>
+  <pre class="ascii">
+Layer 4: App_Ota_DownloadFirmware()    ← chunk loop + flash write + SHA-256
+    ↓ MQTT publish/subscribe
+Layer 3: Mqtt_RequestFwChunk()         ← builds v2/fw/request/.../chunk/...
+    ↓ AT+CIPSEND
+Layer 2: Mqtt_SendPacket()             ← pumps state machine, captures early frames
+    ↓
+Layer 1: UART1_ReadTcpBytes()          ← +IPD state machine, 3-mode parser
+    ↓
+Hardware: UART1 ISR → circular buffer  ← interrupt-driven, 2 KB buffer</pre>
+  <p class="small">Each layer is independent and testable. Layer 1 handles all ESP8266 quirks so higher layers see clean byte streams.</p>
+</section>
+
+<!-- ========== SLIDE 17: STEP C — UART STATE MACHINE ========== -->
+<section>
+  <h2>Step C — UART1 State Machine Detail</h2>
+  <pre class="ascii">
+  scan mode (0)              length mode (1)           data mode (2)
+  ┌──────────┐              ┌──────────┐              ┌──────────┐
+  │ Sliding  │  "+IPD"      │ Parse    │  ":"         │ Read N   │
+  │ window   │──────────→   │ digits   │──────────→   │ bytes    │
+  │ matching │              │ → N      │              │ into     │
+  └──────────┘              └──────────┘              │ buffer   │
+       ↑                                                  │
+       │             N bytes read, or timeout              │
+       └──────────────────────────────────────────────────┘
+
+  Also watches for "SEND OK" in scan mode (sliding window, separate path).
+  Prebuf[128]: bytes captured during SEND OK wait → returned on next read.</pre>
+  <pre><code class="language-c">if (g_ipd.mode == 2u) {           // data mode — read bytes
+  data[written++] = ch;
+  g_ipd.remaining--;
+  if (g_ipd.remaining == 0u) g_ipd.mode = 0u;  // back to scan
+} else if (g_ipd.mode == 1u) {    // length mode — parse digits
+  if (ch >= '0' && ch <= '9') g_ipd.remaining = g_ipd.remaining * 10 + (ch - '0');
+  else if (ch == ':') g_ipd.mode = 2u;
+} else {                           // scan mode — find "+IPD,"
+  // sliding window matching, also calls Uart1_ScanWatch(ch) for SEND OK
+}</code></pre>
+</section>
+
+<!-- ========== SLIDE 18: STEP C — CHUNK REQUEST ========== -->
+<section>
+  <h2>Step C — Chunk Request</h2>
+  <pre><code class="language-c">// Common/mqtt.c
+int Mqtt_RequestFwChunk(uint16_t request_id, uint32_t chunk_index,
+                        uint16_t chunk_size) {
+  char topic[48];
+  snprintf(topic, sizeof(topic), "v2/fw/request/%u/chunk/%u",
+           (unsigned)request_id, (unsigned)chunk_index);
+  // payload = "1024" (chunk size as string)
+  return Mqtt_Publish(topic, size_str, 0u);  // QoS 0
+}</code></pre>
+  <br>
+  <p><b>Topic:</b> <code>v2/fw/request/0/chunk/&lt;index&gt;</code></p>
+  <p><b>Payload:</b> <code>1024</code> (chunk size in bytes)</p>
+  <p><b>QoS:</b> 0 (fire and forget — retransmit on timeout)</p>
+  <br>
+  <p class="small"><span class="red">Critical finding:</span> TB Cloud <b>rejects</b> subscribe on <code>v2/fw/response/#</code> with SUBACK <code>0x80</code>. Chunk responses are routed to the requesting MQTT session automatically — no subscription needed.</p>
+</section>
+
+<!-- ========== SLIDE 19: STEP C — DOWNLOAD LOOP ========== -->
+<section>
+  <h2>Step C — Download Loop</h2>
+  <pre><code class="language-c">while (offset < meta->size) {
+  // 1. Erase flash sector (1 KB boundary)
+  if ((offset & 0x3FFu) == 0u)
+    FlashErase(OTA_IMAGE_BASE + offset);
+
+  // 2. Request chunk
+  Mqtt_RequestFwChunk(0u, offset / OTA_CHUNK_SIZE, OTA_CHUNK_SIZE);
+
+  // 3. Wait for response (8s timeout)
+  while (waited < 8000u) {
+    if (Mqtt_ReadPublish(&msg, 200u)) {
+      if (strncmp(msg.topic, "v2/fw/response/", 15u) == 0) { got = 1; break; }
+    }
+    waited += 200u;
+  }
+
+  // 4. Program flash (pad to 4-byte alignment)
+  memcpy(prog_buf, msg.payload, recv);
+  prog_len = (recv + 3u) & ~3u;
+  for (k = recv; k < prog_len; k++) prog_buf[k] = 0xFFu;
+  FlashProgram((uint32_t *)prog_buf, OTA_IMAGE_BASE + offset, prog_len);
+
+  // 5. Streaming SHA-256 verify
+  Sha256_Update(&sha, prog_buf, recv);
+  offset += recv;
+}</code></pre>
+</section>
+
+<!-- ========== SLIDE 20: STEP C — SHA256 ========== -->
+<section>
+  <h2>Step C — SHA-256 Streaming Verify</h2>
+  <pre><code class="language-c">Sha256_Init(&sha);
+
+// ... during download loop ...
+Sha256_Update(&sha, prog_buf, recv);  // fed chunk by chunk, never full image in RAM
+
+// ... after all chunks received ...
+Sha256_Final(&sha, digest);
+
+// Compare with expected (parsed from fw_checksum hex string)
+if (memcmp(digest, expected, 32u) == 0u) {
+  // Write swap header at 0x10000
+  OtaSwapHeader hdr;
+  hdr.magic = OTA_SWAP_MAGIC;   // 0x53574150 = "SWAP"
+  hdr.size  = meta->size;
+  memcpy(hdr.sha256, digest, 32);
+
+  FlashErase(OTA_STAGING_BASE);            // erase 0x10000 (1 KB sector)
+  FlashProgram(&hdr, OTA_STAGING_BASE, sizeof(hdr));
+  App_Ota_ReportState("VERIFIED");
+}</code></pre>
+  <p class="small">Complete SHA-256 implementation is in <code>ota.c</code> (compact, no library dependency). Processes 64-byte blocks. Total RAM: <code>Sha256_Ctx</code> = ~136 bytes.</p>
+</section>
+
+<!-- ========== SLIDE 21: STEP D — BOOTLOADER MAIN ========== -->
+<section>
+  <h2>Step D — Bootloader Entry</h2>
+  <pre><code class="language-c">// Bootloader/bootloader.c
+int main(void) {
+  Boot_UartInit();            // minimal UART0 @ 115200 for debug output
+  Boot_Print("[BL] bootloader up\r\n");
+
+  Boot_SwapFirmware();        // check staging → copy if valid
+
+  if (Boot_IsApplicationValid()) {
+    Boot_Print("[BL] app valid, jumping\r\n");
+    Boot_JumpToApplication(); // never returns
+  } else {
+    // print SP/PC for diagnosis, then spin
+    Boot_Print("[BL] NO VALID APP sp=0x");
+    Boot_PrintHex(HWREG(APP_BASE));
+  }
+
+  while (1) {}  // halt — nothing more to do
+}</code></pre>
+  <p class="small">Bootloader total size: <b>3,300 bytes</b>. Uses TivaWare driverlib for UART + flash. No heap, no dynamic allocation.</p>
+</section>
+
+<!-- ========== SLIDE 22: STEP D — SWAP LOGIC ========== -->
+<section>
+  <h2>Step D — Swap Logic</h2>
+  <pre><code class="language-c">static int Boot_SwapFirmware(void) {
+  const OtaSwapHeader *hdr = (const OtaSwapHeader *)STAGING_BASE;
+
+  // 1. Check magic
+  if (hdr->magic != SWAP_MAGIC) return 0;  // no staged image
+
+  // 2. Validate size
+  if (hdr->size == 0u || hdr->size > (BOOT_FLASH_END - BOOT_APP_BASE))
+    return 0;
+
+  // 3. Erase application flash (1 KB sectors, rounded up)
+  if (!Boot_FlashEraseApplication(hdr->size)) return 0;
+
+  // 4. Copy staging → app (256-byte chunks)
+  uint32_t remaining = hdr->size;
+  uint32_t src = IMAGE_BASE;   // 0x10400
+  uint32_t dst = BOOT_APP_BASE; // 0x4000
+  while (remaining > 0u) {
+    uint32_t chunk = (remaining > 256u) ? 256u : remaining;
+    Boot_FlashWrite(dst, (const uint8_t *)src, chunk);
+    src += chunk; dst += chunk; remaining -= chunk;
+  }
+
+  // 5. Clear header — prevents swap on next reset
+  FlashErase(STAGING_BASE);
+  return 1;
+}</code></pre>
+</section>
+
+<!-- ========== SLIDE 23: STEP D — VALIDATE ========== -->
+<section>
+  <h2>Step D — Application Validation</h2>
+  <pre><code class="language-c">static int Boot_IsApplicationValid(void) {
+  uint32_t initial_sp    = HWREG(APP_BASE);      // word at 0x4000
+  uint32_t reset_handler = HWREG(APP_BASE + 4u);  // word at 0x4004
+
+  // SP must be in SRAM (0x20000000 – 0x20008000)
+  if ((initial_sp < SRAM_BASE) || (initial_sp >= SRAM_END))
+    return 0;
+
+  // Reset handler must be in flash, within app region, with Thumb bit set
+  if ((reset_handler < (APP_BASE + 4u)) ||
+      (reset_handler >= FLASH_END) || ((reset_handler & 1u) == 0u))
+    return 0;
+
+  return 1;
+}</code></pre>
+  <p><b>Why two checks?</b></p>
+  <p class="small">• SP in RAM → vector table was written (not all 0xFF or random).</p>
+  <p class="small">• Reset handler in flash + thumb bit → valid function pointer, not garbage.</p>
+  <p class="small">• Together: prevents crash-loop if flash write was interrupted mid-erase.</p>
+</section>
+
+<!-- ========== SLIDE 24: STEP D — JUMP ========== -->
+<section>
+  <h2>Step D — Handover (Assembly)</h2>
+  <pre><code class="language-c">static void Boot_JumpToApplication(void) {
+  uint32_t initial_sp    = HWREG(APP_BASE);
+  uint32_t reset_handler = HWREG(APP_BASE + 4u);
+
+  HWREG(NVIC_VTABLE) = APP_BASE;  // relocate vector table
+
+  __asm volatile(
+      "cpsid i       \n"   // disable interrupts
+      "dsb           \n"   // data synchronization barrier
+      "msr msp, %0   \n"   // switch to application's stack pointer
+      "isb           \n"   // instruction synchronization barrier
+      "bx  %1        \n"   // branch to application reset handler
+      :
+      : "r"(initial_sp), "r"(reset_handler)
+      : "memory");
+
+  while (1) {}  // unreachable
+}</code></pre>
+  <p><b>Why assembly?</b></p>
+  <p class="small">After <code>msr msp</code>, the C execution environment (old stack) is destroyed. No C code can execute after this point — not even the function call. Assembly is the only safe way to hand over.</p>
+</section>
+
+<!-- ========== SLIDE 25: INCIDENT 1 ========== -->
+<section>
+  <h2>Incident 1: JSON Truncated</h2>
+  <p><b>Symptom:</b> <code>fw_*</code> fields parsed as empty strings.</p>
+  <p><b>Cause:</b> ESP8266 sends data via <code>+IPD</code> frames. A single MQTT PUBLISH can be split across 2–3 <code>+IPD</code> chunks. The old readline-based parser stopped at the first <code>\n</code> → lost data.</p>
+  <br>
+  <p><b>Fix:</b> Wrote <code>UART1_ReadTcpBytes()</code> — a persistent 3-mode state machine that handles split <code>+IPD</code> headers, raw continuation bytes, and overlapping <code>SEND OK</code>.</p>
+  <pre><code class="language-c">// The state machine maintains mode across reads — no data lost
+typedef struct {
+  uint8_t mode;       // 0=scan, 1=length, 2=data — persists between calls
+  char hdr[5];        // sliding window for "+IPD," detection
+  uint32_t remaining; // bytes left in current +IPD frame
+} Uart1IpdState;</code></pre>
+</section>
+
+<!-- ========== SLIDE 26: INCIDENT 2 ========== -->
+<section>
+  <h2>Incident 2: Subscribe Rejected (0x80)</h2>
+  <p><b>Symptom:</b></p>
+  <pre><code class="language-bash">SUBACK bad: n=5 [90 03 00 03 80]
+OTA download: subscribe FAILED</code></pre>
+  <p><b>Cause:</b> ThingsBoard Cloud <b>always rejects</b> SUBSCRIBE on <code>v2/fw/response/#</code>. This is a TB design decision — chunk responses are routed to the requesting MQTT session automatically.</p>
+  <br>
+  <p><b>Fix:</b> Remove the subscribe command entirely. Chunk responses arrive via session routing. Code comment:</p>
+  <pre><code class="language-c">// ThingsBoard always rejects SUBSCRIBE on v2/fw/response/# with 0x80
+// (unsupported topic) — chunk responses are routed to the requesting
+// session regardless of any subscription, so none is needed.</code></pre>
+</section>
+
+<!-- ========== SLIDE 27: INCIDENT 3 ========== -->
+<section>
+  <h2>Incident 3: Infinite Download Loop</h2>
+  <p><b>Symptom:</b> App downloads → reset → re-downloads → reset → re-downloads …</p>
+  <p><b>Cause:</b></p>
+  <p class="small"><code>CONFIG_FW_VERSION = "1.0.0"</code> in code, but TB assigned version <code>1.0.2</code>. Device reported <code>current_fw_version = "1.0.0"</code> → TB saw mismatch → pushed metadata again → infinite loop.</p>
+  <br>
+  <p><b>Fix (2 layers):</b></p>
+  <pre><code class="language-c">// Layer 1: Sync version
+#define CONFIG_FW_VERSION "1.0.3"  // must match TB package version
+
+// Layer 2: Defense-in-depth at download entry
+if (meta->version[0] != '\0' &&
+    strcmp(meta->version, CONFIG_FW_VERSION) == 0) {
+  App_Ota_ReportState("UPDATED");  // skip download
+  return 1;
+}</code></pre>
+</section>
+
+<!-- ========== SLIDE 28: INCIDENT 4 ========== -->
+<section>
+  <h2>Incident 4: Header Erase Destroyed Image</h2>
+  <p><b>Symptom:</b> After download, header erase destroyed first 128 bytes of firmware → vector table corrupted → crash.</p>
+  <br>
+  <p><b>Cause:</b></p>
+  <pre class="ascii">
+  HEADER at 0x10000, IMAGE at 0x10080  ← overlap!
+  FlashErase(0x10000) clears sector 0x10000–0x103FF
+  → destroys 0x10080–0x103FF (896 bytes of image)
+  </pre>
+  <p><b>Fix:</b> Move image to <code>0x10400</code> (sector-aligned). Header gets entire 1 KB sector.</p>
+  <pre class="ascii">
+  HEADER at 0x10000–0x103FF  (sector 0)
+  IMAGE  at 0x10400–0x107FF  (sector 1)  ← no overlap
+  FlashErase(0x10000) only clears header sector.
+  </pre>
+</section>
+
+<!-- ========== SLIDE 29: INCIDENT 5 ========== -->
+<section>
+  <h2>Incident 5: ESP8266 AT Fail</h2>
+  <p><b>Symptom:</b></p>
+  <pre><code class="language-bash">TX> AT<CR><LF>
+AT: FAIL
+ESP8266 setup failed; MQTT stopped</code></pre>
+  <p><b>Cause:</b> Board reset only resets the TM4C123, <b>not</b> the ESP8266. ESP stuck in a bad state from the previous session.</p>
+  <br>
+  <p><b>Fix:</b> Power-cycle (unplug USB, wait 10 seconds, reconnect). This is a hardware limitation, not a code issue.</p>
+  <p class="small"><b>Prevention:</b> Added <code>AT+CIPCLOSE</code> on MQTT reconnect and <code>AT+CWQAP</code> before re-association.</p>
+</section>
+
+<!-- ========== SLIDE 30: BUILD ========== -->
+<section>
+  <h2>Build &amp; Flash Procedure</h2>
+  <pre><code class="language-bash># 1. Build bootloader
+cd D:\CCStudio_Workspace\project0\Bootloader
+D:\ti\ccs2100\ccs\utils\bin\gmake.exe clean
+D:\ti\ccs2100\ccs\utils\bin\gmake.exe all
+# → bootloader.bin (3300 bytes)
+
+# 2. Build application
+cd D:\CCStudio_Workspace\project0\Debug
+D:\ti\ccs2100\ccs\utils\bin\gmake.exe clean
+D:\ti\ccs2100\ccs\utils\bin\gmake.exe all
+# → project0.out
+
+# 3. Generate raw binary
+tiarmobjcopy -O binary project0.out project0.bin
+# → project0.bin (30148 bytes)
+
+# 4. Merge into single flashable image
+powershell -NoProfile -ExecutionPolicy Bypass -File ..\merge_bins.ps1
+# → project0_merged.bin (46532 bytes)
+
+# 5. Flash via LM Flash Programmer
+#    File: project0_merged.bin
+#    Address: 0x00000000
+#    Erase: Entire Flash → Program → Reset</code></pre>
+</section>
+
+<!-- ========== SLIDE 31: TEST RESULTS ========== -->
+<section>
+  <h2>Test Results</h2>
+  <p><b>Test 1 — Version Skip (no re-download):</b></p>
+  <pre><code class="language-bash">OTA: new firmware 'project0' 1.0.3 (30148 bytes)
+OTA: checksum a6f8ea11... (SHA256)
+OTA state -> DOWNLOADING
+OTA download: MQTT chunk transfer ready
+OTA: already up to date (1.0.3)
+OTA state -> UPDATED</code></pre>
+  <p><b>Test 2 — Bootloader Swap:</b></p>
+  <pre><code class="language-bash">[BL] bootloader up
+[BL] staging valid, size=0x00007494
+[BL] swap done, new app at 0x4000
+[BL] app valid, jumping
+[BOOT] app @0x4000 running, 16MHz</code></pre>
+  <p><b>Test 3 — Telemetry:</b></p>
+  <pre><code class="language-bash">Topic: v1/devices/me/telemetry
+Payload: {"temperature":26.9,"humidity":39.0,"light":536}
+MQTT PUBLISH OK</code></pre>
+</section>
+
+<!-- ========== SLIDE 32: LESSONS LEARNED ========== -->
+<section>
+  <h2>Lessons Learned</h2>
+  <table>
+    <tr><th>Category</th><th>Lesson</th></tr>
+    <tr><td><b>Bootloader</b></td><td>Keep it tiny (3.3 KB). One job: validate → copy → jump. No networking.</td></tr>
+    <tr><td><b>Flash layout</b></td><td>Constants are a contract between build stages. Mismatch → silent corruption.</td></tr>
+    <tr><td><b>Sector alignment</b></td><td>Always align regions to sector boundaries (1 KB on TM4C). Prevents cross-sector erase.</td></tr>
+    <tr><td><b>ESP8266 quirks</b></td><td>Handle <code>+IPD</code> splits in state machines, not string matching. Persistent mode across reads.</td></tr>
+    <tr><td><b>Stack budget</b></td><td>256-byte stack caused silent corruption. 2048 bytes + static buffers fixed it.</td></tr>
+    <tr><td><b>Version sync</b></td><td><code>CONFIG_FW_VERSION</code> must match TB package. Add defense-in-depth version check.</td></tr>
+    <tr><td><b>SHA-256 streaming</b></td><td>No full-image RAM buffer. Feed chunks as they arrive — critical for 32 KB SRAM.</td></tr>
+    <tr><td><b>TB routing</b></td><td><code>v2/fw/response/#</code> subscription rejected. Session routing handles it automatically.</td></tr>
+  </table>
+</section>
+
+<!-- ========== SLIDE 33: BEST PRACTICES ========== -->
+<section>
+  <h2>Best Practices Summary</h2>
+  <div class="cols">
+    <div>
+      <p><b>Design</b></p>
+      <ul class="small">
+        <li>Single-purpose bootloader</li>
+        <li>Sector-aligned flash regions</li>
+        <li>State machines for unreliable streams</li>
+        <li>Streaming crypto (no full-image buffer)</li>
+      </ul>
+      <br>
+      <p><b>Build</b></p>
+      <ul class="small">
+        <li>Always <code>gmake clean</code> after makefile changes</li>
+        <li><code>tiarmobjcopy</code> over unreliable <code>tiobj2bin</code></li>
+        <li>Sanity-check merged binary (SP validation)</li>
+      </ul>
+    </div>
+    <div>
+      <p><b>Debug</b></p>
+      <ul class="small">
+        <li>UART0 logging at every decision point</li>
+        <li>Hex dump of unexpected responses</li>
+        <li>Layer-by-layer testing (UART → MQTT → OTA → Boot)</li>
+      </ul>
+      <br>
+      <p><b>Security</b></p>
+      <ul class="small">
+        <li>Credentials in gitignored <code>config_user.h</code></li>
+        <li>SHA-256 integrity check (not encryption)</li>
+        <li>Defense-in-depth (version check + state machine)</li>
+      </ul>
+      <br>
+      <p><b>Process</b></p>
+      <ul class="small">
+        <li>Write docs while building, not after</li>
+        <li>Commit small, commit often</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 34: FUTURE ========== -->
+<section>
+  <h2>Future Work</h2>
+  <table>
+    <tr><th>Feature</th><th>Description</th><th>Priority</th></tr>
+    <tr><td><b>Rollback</b></td><td>Keep previous image; revert if new image fails to boot</td><td class="red">High</td></tr>
+    <tr><td><b>Persistent state</b></td><td>Save pending/valid flag to dedicated flash page (power-loss safe)</td><td class="red">High</td></tr>
+    <tr><td><b>TLS</b></td><td>MQTT over TLS (port 8883) for production</td><td class="orange">Medium</td></tr>
+    <tr><td><b>HTTP fallback</b></td><td>If TB provides <code>fw_url</code>, download via HTTP</td><td>Low</td></tr>
+    <tr><td><b>Delta update</b></td><td>Download only changed sectors (reduce bandwidth)</td><td>Low</td></tr>
+    <tr><td><b>Multi-version</b></td><td>A/B boot selection (2 app slots, pick better one)</td><td>Low</td></tr>
+  </table>
+</section>
+
+<!-- ========== SLIDE 35: CONCLUSION ========== -->
+<section>
+  <h2>Conclusion</h2>
+  <br>
+  <p><b>What we built:</b></p>
+  <p class="small">A complete FOTA system for bare-metal ARM Cortex-M4, from sensor readout to cloud-managed firmware updates — all in ~3,140 lines of C with no external frameworks.</p>
+  <br>
+  <p><b>Key achievements:</b></p>
+  <ul class="small">
+    <li>Steps A–D verified on real hardware</li>
+    <li>30 KB application + 3.3 KB bootloader</li>
+    <li>SHA-256 streaming verification (no full-image RAM buffer)</li>
+    <li>Persistent +IPD state machine handles all ESP8266 quirks</li>
+    <li>12 incidents resolved and documented</li>
+  </ul>
+  <br>
+  <p><b>What remains:</b></p>
+  <p class="small">Rollback, persistent state, TLS — production hardening.</p>
+  <br>
+  <p class="tiny">Source: github.com/MinhDeepZaiZLer/Embedded_Learning_Demo &middot; branch: main &middot; 38 commits &middot; v1.0.3</p>
+</section>
+
+<!-- ========== SLIDE 36: THANK YOU ========== -->
+<section>
+  <h1>Thank You</h1>
+  <br>
+  <p>FOTA for TM4C123GH6PM + ESP8266 + ThingsBoard Cloud</p>
+  <p class="small">All 4 steps verified on hardware</p>
+  <br>
+  <p class="tiny">Slides built with reveal.js &middot; Content from FOTA_GUIDE.md, source code audit, and hardware test logs</p>
+</section>
+
+</div><!-- /slides -->
+</div><!-- /reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/notes/notes.min.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  showSlideNumber: 'all',
+  controls: true,
+  progress: true,
+  center: true,
+  transition: 'slide',
+  plugins: [RevealHighlight, RevealNotes]
+});
+</script>
+</body>
+</html>
