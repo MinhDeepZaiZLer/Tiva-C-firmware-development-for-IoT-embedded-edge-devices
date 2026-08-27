@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embedded IoT FOTA System — Full Project Presentation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/white.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/monokai.min.css">
+<style>
+  .reveal h1 { font-size: 1.8em; }
+  .reveal h2 { font-size: 1.4em; }
+  .reveal h3 { font-size: 1.1em; }
+  .reveal table { font-size: 0.68em; margin: 10px auto; border-collapse: collapse; }
+  .reveal table th, .reveal table td { border: 1px solid #666; padding: 5px 10px; text-align: left; }
+  .reveal table th { background: #2d2d2d; color: #f8f8f2; }
+  .reveal pre { width: 100%; font-size: 0.55em; margin: 8px 0; }
+  .reveal code { font-size: 0.8em; }
+  .reveal .ascii { font-family: monospace; font-size: 0.58em; text-align: left; line-height: 1.35; }
+  .reveal .red { color: #e74c3c; font-weight: bold; }
+  .reveal .green { color: #27ae60; font-weight: bold; }
+  .reveal .blue { color: #2980b9; font-weight: bold; }
+  .reveal .orange { color: #e67e22; font-weight: bold; }
+  .reveal .small { font-size: 0.78em; }
+  .reveal .tiny { font-size: 0.65em; color: #666; }
+  .reveal .cols { display: flex; gap: 18px; }
+  .reveal .cols > div { flex: 1; }
+  .reveal .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7em; margin: 2px; }
+  .reveal .tag-done { background: #27ae60; color: #fff; }
+  .reveal .tag-retired { background: #95a5a6; color: #fff; }
+  .reveal .tag-future { background: #e67e22; color: #fff; }
+  .slide-number { font-size: 12px !important; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================================ -->
+<!-- SECTION 1: INTRODUCTION                                      -->
+<!-- ============================================================ -->
+
+<!-- SLIDE 1: TITLE -->
+<section>
+  <h1>Embedded IoT FOTA System</h1>
+  <h3 style="color:#555">TM4C123GH6PM + ESP8266 + ThingsBoard Cloud</h3>
+  <br>
+  <p class="small">From bare-metal drivers to cloud-managed firmware updates</p>
+  <p class="small">Complete project walkthrough — v1.0.3</p>
+  <br>
+  <table style="font-size:0.7em">
+    <tr><td><b>36 source files</b></td><td><b>~3,140 lines of C</b></td><td><b>38 git commits</b></td></tr>
+    <tr><td><b>30 KB application</b></td><td><b>3.3 KB bootloader</b></td><td><b>4 FOTA steps verified</b></td></tr>
+  </table>
+</section>
+
+<!-- SLIDE 2: AGENDA -->
+<section>
+  <h2>Agenda</h2>
+  <div class="cols">
+    <div>
+      <p><b>Part 1 — Foundation</b></p>
+      <ol class="small">
+        <li>Problem &amp; Objectives</li>
+        <li>System Architecture</li>
+        <li>Hardware Components</li>
+        <li>Software Architecture</li>
+        <li>Flash Memory Layout</li>
+      </ol>
+      <br>
+      <p><b>Part 2 — Implementation</b></p>
+      <ol class="small" start="6">
+        <li>Driver Layer (UART, I2C, ADC, GPIO)</li>
+        <li>MQTT Communication</li>
+        <li>ThingsBoard Integration</li>
+        <li>FOTA Pipeline (Steps A–D)</li>
+      </ol>
+    </div>
+    <div>
+      <p><b>Part 3 — Results</b></p>
+      <ol class="small" start="10">
+        <li>Key Deliverables</li>
+        <li>Build &amp; Flash</li>
+        <li>Demo: Live Telemetry</li>
+        <li>Demo: OTA Cycle</li>
+        <li>Test Results</li>
+      </ol>
+      <br>
+      <p><b>Part 4 — Reflection</b></p>
+      <ol class="small" start="14">
+        <li>Incidents &amp; Fixes</li>
+        <li>Resource Budget</li>
+        <li>Lessons Learned</li>
+        <li>Future Work</li>
+        <li>Conclusion</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: FOUNDATION                                        -->
+<!-- ============================================================ -->
+
+<!-- SLIDE 3: PROBLEM -->
+<section>
+  <h2>Problem Statement</h2>
+  <br>
+  <p>Deployed IoT devices <b>cannot be physically accessed</b> for firmware updates.</p>
+  <br>
+  <p class="small">A device installed in a cabinet, on a pole, or underground — the only way to update its software is <b>over the air</b>.</p>
+  <br>
+  <p><b>Challenge:</b> The device is <em>running the firmware it needs to update</em>.</p>
+  <p class="small">Flash is execute-in-place — you cannot overwrite code you are currently executing.</p>
+  <br>
+  <p><b>Solution:</b> Staged flash regions + a first-stage bootloader.</p>
+</section>
+
+<!-- SLIDE 4: OBJECTIVES -->
+<section>
+  <h2>Project Objectives</h2>
+  <table>
+    <tr><th>#</th><th>Objective</th><th>Status</th></tr>
+    <tr><td>1</td><td>Read sensors — temperature, humidity (AM2301B), light (ADC)</td><td><span class="tag tag-done">Done</span></td></tr>
+    <tr><td>2</td><td>Publish telemetry to ThingsBoard Cloud via MQTT over WiFi</td><td><span class="tag tag-done">Done</span></td></tr>
+    <tr><td>3</td><td>Receive firmware updates without physical access (FOTA)</td><td><span class="tag tag-done">Done</span></td></tr>
+    <tr><td>4</td><td>Verify integrity of downloaded firmware (SHA-256)</td><td><span class="tag tag-done">Done</span></td></tr>
+    <tr><td>5</td><td>Activate safely via a first-stage bootloader</td><td><span class="tag tag-done">Done</span></td></tr>
+  </table>
+  <br>
+  <p><b>Scope boundaries:</b></p>
+  <div class="cols">
+    <div class="small">
+      <p class="green">In scope</p>
+      <ul>
+        <li>MQTT telemetry (QoS 0/1)</li>
+        <li>OTA metadata parsing</li>
+        <li>MQTT chunk download</li>
+        <li>SHA-256 streaming verify</li>
+        <li>Bootloader swap</li>
+        <li>Debug logging (UART0)</li>
+      </ul>
+    </div>
+    <div class="small">
+      <p class="red">Out of scope</p>
+      <ul>
+        <li>HTTPS/TLS encryption</li>
+        <li>Persistent rollback</li>
+        <li>Delta updates</li>
+        <li>Multi-image A/B boot</li>
+        <li>Remote device dashboard</li>
+        <li>Production error recovery</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5: ARCHITECTURE -->
+<section>
+  <h2>System Architecture</h2>
+  <pre class="ascii">
+┌────────────────────────────────────────────────────────────────────┐
+│                      ThingsBoard Cloud                             │
+│   mqtt.eu.thingsboard.cloud:1883 (plain MQTT, QoS 0/1)           │
+│                                                                    │
+│   ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐ │
+│   │ OTA Package  │  │ Shared Attrs │  │ Telemetry Dashboard     │ │
+│   │ project0     │  │ fw_version   │  │ temperature / humidity  │ │
+│   │ v1.0.3       │  │ fw_checksum  │  │ / light                 │ │
+│   └──────────────┘  └──────────────┘  └─────────────────────────┘ │
+└─────────────────────────────┬──────────────────────────────────────┘
+                              │ WiFi (TCP/MQTT)
+┌─────────────────────────────┴──────────────────────────────────────┐
+│  ESP8266  (AT command firmware, UART1 115200 baud)                 │
+│  AT+CIPSTART → AT+CIPSEND → +IPD stream                            │
+└─────────────────────────────┬──────────────────────────────────────┘
+                              │ UART1 (interrupt-driven, +IPD state machine)
+┌─────────────────────────────┴──────────────────────────────────────┐
+│  TM4C123GH6PM  (ARM Cortex-M4, 256 KB flash, 32 KB SRAM)          │
+│                                                                    │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐          │
+│  │ UART0  │ │ MQTT   │ │ OTA    │ │ Sensor │ │ GPIO   │          │
+│  │ Debug  │ │ Client │ │ FOTA   │ │ AM2301B│ │ LEDs   │          │
+│  │ 115200 │ │ 3.1.1  │ │ Pipeline│ │ ADC   │ │ Buttons│          │
+│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘          │
+│                                                                    │
+│  ┌───────────────────────────────────────────────────────────┐    │
+│  │ Bootloader @ 0x0000 (3.3 KB)                              │    │
+│  │ Validate staging → Erase app → Copy → Jump to new app     │    │
+│  └───────────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────────────────┘</pre>
+</section>
+
+<!-- SLIDE 6: HARDWARE -->
+<section>
+  <h2>Hardware Components</h2>
+  <table>
+    <tr><th>Component</th><th>Role</th><th>Interface</th><th>Details</th></tr>
+    <tr><td><b>TM4C123GH6PM</b></td><td>ARM Cortex-M4 MCU</td><td>UART0, UART1</td><td>256 KB flash, 32 KB SRAM, 16 MHz</td></tr>
+    <tr><td><b>ESP8266</b></td><td>WiFi module</td><td>UART1 ↔ TM4C</td><td>AT command firmware, 115200 baud</td></tr>
+    <tr><td><b>ThingsBoard PE</b></td><td>Cloud IoT platform</td><td>MQTT (TCP 1883)</td><td>OTA management, telemetry dashboard</td></tr>
+    <tr><td><b>AM2301B</b></td><td>Temp + humidity sensor</td><td>I2C0</td><td>Address 0x38, 20-bit raw</td></tr>
+    <tr><td><b>ADC (PE3/AIN0)</b></td><td>Light sensor</td><td>ADC0 SS3</td><td>12-bit, single-shot</td></tr>
+    <tr><td><b>EK-TM4C123GXL</b></td><td>LaunchPad board</td><td>—</td><td>Onboard LEDs (PF1-3), buttons (PF0, PF4)</td></tr>
+  </table>
+</section>
+
+<!-- SLIDE 7: SOFTWARE ARCHITECTURE -->
+<section>
+  <h2>Software Architecture</h2>
+  <pre class="ascii">
+  ┌─────────────────────────────────────────────────────────┐
+  │                 Application Layer                       │
+  │  main.c → app_connect.c (WiFi/MQTT loop)               │
+  │           ota.c (FOTA pipeline: parse, download, verify)│
+  │           mqtt.c (MQTT 3.1.1 client)                   │
+  └────────────────────────┬────────────────────────────────┘
+                           │
+  ┌────────────────────────┴────────────────────────────────┐
+  │                  Driver Layer                            │
+  │  uart1.c (ESP8266 AT, +IPD state machine)               │
+  │  uart.c  (debug console)    i2c0.c (I2C master)        │
+  │  adc.c   (analog read)      gpio.c (LEDs/buttons)      │
+  └────────────────────────┬────────────────────────────────┘
+                           │
+  ┌────────────────────────┴────────────────────────────────┐
+  │                 Device Layer                             │
+  │  am2301b.c (temp/humidity)  lcd.c (character LCD)       │
+  │  mma7660.c (accelerometer, not active)                  │
+  └─────────────────────────────────────────────────────────┘
+                           │
+  ┌────────────────────────┴────────────────────────────────┐
+  │               Bootloader (separate build)                │
+  │  bootloader.c → boot_flash.c (erase/write/CRC)          │
+  │  Runs at 0x0000, app at 0x4000, staging at 0x10000     │
+  └─────────────────────────────────────────────────────────┘</pre>
+</section>
+
+<!-- SLIDE 8: FLASH LAYOUT -->
+<section>
+  <h2>Flash Memory Layout</h2>
+  <pre class="ascii">
+ 256 KB total flash on TM4C123GH6PM:
+
+ 0x00000 ┌──────────────────────────────┐
+         │   BOOTLOADER (3.3 KB)        │  0x0000 – 0x3FFF
+         │   Validate → Erase → Copy    │
+         │   → Jump (inline asm)        │
+ 0x04000 ├──────────────────────────────┤
+         │   APPLICATION (30 KB)         │  0x4000 – 0xBFFF
+         │   Sensors + MQTT + FOTA       │
+         │   VTOR relocated to 0x4000    │
+ 0x10000 ├──────────────────────────────┤
+         │   STAGING HEADER (1 KB)       │  0x10000 – 0x103FF
+         │   magic(4) + size(4) +        │
+         │   SHA-256(32) + reserved(88)  │
+ 0x10400 ├──────────────────────────────┤
+         │   STAGING IMAGE (30 KB)       │  0x10400 – 0x17FFF
+         │   Downloaded firmware          │
+         │   Written chunk-by-chunk       │
+         └──────────────────────────────┘
+
+ Key: sector size = 1 KB. Image @ 0x10400 is sector-aligned
+      so header erase at 0x10000 never touches the image.</pre>
+  <p class="small">Constants match exactly between <code>ota.c</code> and <code>bootloader.c</code>.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: IMPLEMENTATION                                    -->
+<!-- ============================================================ -->
+
+<!-- SLIDE 9: DRIVER LAYER -->
+<section>
+  <h2>Phase 1 — Driver Layer</h2>
+  <table>
+    <tr><th>Driver</th><th>File</th><th>Lines</th><th>Key Features</th></tr>
+    <tr><td><b>UART0</b></td><td>uart.c</td><td>113</td><td>115200 baud debug console, WriteString, WriteInt</td></tr>
+    <tr><td><b>UART1</b></td><td>uart1.c</td><td>597</td><td>ISR-driven RX, 2 KB circular buffer, AT command layer, +IPD state machine, SEND OK detection</td></tr>
+    <tr><td><b>I2C0</b></td><td>i2c0.c</td><td>203</td><td>Master mode, 100 KHz, single/burst R/W, bus scan</td></tr>
+    <tr><td><b>ADC0</b></td><td>adc.c</td><td>61</td><td>PE3/AIN0, SS3 software trigger, 12-bit</td></tr>
+    <tr><td><b>GPIO</b></td><td>gpio.c</td><td>51</td><td>PF1-3 LEDs, PF0/PF4 buttons, edge detection</td></tr>
+    <tr><td><b>AM2301B</b></td><td>am2301b.c</td><td>44</td><td>I2C temp/humidity, 20-bit raw → float conversion</td></tr>
+    <tr><td><b>LCD</b></td><td>lcd.c</td><td>116</td><td>I2C 16x2 character LCD, burst write, RGB backlight</td></tr>
+  </table>
+  <br>
+  <p class="small"><b>Total driver code:</b> ~1,185 lines. All hand-written, no external libraries (except TivaWare for clock/flash helpers).</p>
+</section>
+
+<!-- SLIDE 10: MQTT -->
+<section>
+  <h2>Phase 2 — MQTT Communication</h2>
+  <pre><code class="language-c">// Common/mqtt.c — complete MQTT 3.1.1 client over ESP8266 AT commands
+
+Mqtt_Connect("TM4C123", token, 0, 30);      // CONNECT + CONNACK
+Mqtt_Publish(topic, payload, 1u);            // PUBLISH QoS 1 + PUBACK
+Mqtt_Subscribe(topic, 1u);                   // SUBSCRIBE + SUBACK
+Mqtt_SendPing();                             // PINGREQ (2 bytes)
+Mqtt_ReadPublish(&msg, timeout_ms);          // receive next PUBLISH
+Mqtt_RequestFwChunk(id, index, size);        // OTA chunk request</code></pre>
+  <br>
+  <p><b>Key challenge:</b> ESP8266 splits TCP data across <code>+IPD</code> frames.</p>
+  <pre><code class="language-c">// Mqtt_CompletePublish() reassembles split PUBLISH packets
+// Mqtt_SendPacket() captures early MQTT frames during SEND OK wait
+// mqtt_pending_msg stashes PUBLISHes received during PUBACK wait</code></pre>
+  <p class="small"><b>2 KB static buffer</b> for raw MQTT stream. Streaming design — no full-image copy.</p>
+</section>
+
+<!-- SLIDE 11: THINGSBOARD -->
+<section>
+  <h2>Phase 3 — ThingsBoard Integration</h2>
+  <pre><code class="language-c">// On MQTT connect:
+Mqtt_Subscribe("v1/devices/me/attributes", 1u);  // receive OTA metadata
+
+App_Ota_ReportCurrentFirmware();
+// → publishes: current_fw_title, current_fw_version, current_fw_checksum
+// → TB compares against assigned package version
+
+// Request metadata:
+Mqtt_Publish("v1/devices/me/attributes/request/1",
+  "{\"sharedKeys\":\"fw_title,fw_version,fw_size,fw_checksum,...\"}", 0u);
+
+// Publish telemetry every 10 seconds:
+snprintf(json, sizeof(json),
+  "{\"temperature\":%.1f,\"humidity\":%.1f,\"light\":%u}",
+  temperature, humidity, adcValue);
+Mqtt_Publish("v1/devices/me/telemetry", json, 1u);</code></pre>
+</section>
+
+<!-- SLIDE 12: FOTA OVERVIEW -->
+<section>
+  <h2>Phase 4 — FOTA Pipeline</h2>
+  <pre class="ascii">
+  TB assigns firmware 1.0.3
+      ↓
+  [STEP A] Receive metadata (MQTT PUBLISH on attributes)
+      ↓
+  [STEP B] Report DOWNLOADING
+      ↓
+  [STEP C] Download via MQTT chunks (v2/fw/request/0/chunk/&lt;index&gt;)
+           → Flash to staging (0x10400), SHA-256 streaming verify
+      ↓
+  [STEP B] Report DOWNLOADED → VERIFIED
+      ↓
+  [STEP C] Write swap header at 0x10000 (magic + size + SHA-256)
+      ↓
+  [STEP D] Reset → Bootloader validates header
+           → Erases app (0x4000) → Copies staging → app
+           → Clears header → Jumps to new app
+      ↓
+  [STEP B] Report UPDATED → version match → no re-download loop</pre>
+</section>
+
+<!-- SLIDE 13: STEP A DETAIL -->
+<section>
+  <h2>Step A — Receive Metadata</h2>
+  <pre><code class="language-c">// App_Ota_ProcessMessage() — Common/ota.c
+void App_Ota_ProcessMessage(const MqttMessage *msg) {
+  if (strstr(msg->topic, "attributes") == 0) return;
+
+  // Extract fw_* fields — handles flat AND {"shared":{...}} formats
+  App_JsonCopyString(ota_metadata.title, ..., msg->payload, "fw_title");
+  App_JsonCopyString(ota_metadata.version, ..., msg->payload, "fw_version");
+  App_JsonCopyString(ota_metadata.checksum, ..., msg->payload, "fw_checksum");
+  App_JsonGetUint(msg->payload, "fw_size", &ota_metadata.size);
+
+  // fw_url typically absent — code uses MQTT chunk API instead
+  ota_metadata_valid = 1;
+  App_Ota_ReportState("DOWNLOADING");
+  App_Ota_DownloadFirmware();
+}</code></pre>
+  <p class="small">JSON parsing: heap-free, minimal, searches entire payload for each key.</p>
+</section>
+
+<!-- SLIDE 14: STEP C DETAIL -->
+<section>
+  <h2>Step C — Download Loop</h2>
+  <pre><code class="language-c">while (offset < meta->size) {
+  // 1. Erase flash sector on 1 KB boundary
+  if ((offset & 0x3FFu) == 0u) FlashErase(OTA_IMAGE_BASE + offset);
+
+  // 2. Request chunk
+  Mqtt_RequestFwChunk(0u, offset / OTA_CHUNK_SIZE, OTA_CHUNK_SIZE);
+
+  // 3. Wait for response (8s timeout, 200ms poll)
+  while (waited < 8000u) {
+    if (Mqtt_ReadPublish(&msg, 200u))
+      if (strncmp(msg.topic, "v2/fw/response/", 15u) == 0) { got=1; break; }
+    waited += 200u;
+  }
+
+  // 4. Program flash (pad to 4-byte alignment)
+  FlashProgram((uint32_t *)prog_buf, OTA_IMAGE_BASE + offset, prog_len);
+
+  // 5. Streaming SHA-256 verify
+  Sha256_Update(&sha, prog_buf, recv);
+  offset += recv;
+}
+// After loop: SHA-256 final → compare → write header if match</code></pre>
+</section>
+
+<!-- SLIDE 15: STEP D DETAIL -->
+<section>
+  <h2>Step D — Bootloader Swap</h2>
+  <pre><code class="language-c">// Bootloader/bootloader.c — runs on every reset
+int main(void) {
+  Boot_UartInit();
+  Boot_SwapFirmware();          // check staging → copy if valid
+  if (Boot_IsApplicationValid())
+    Boot_JumpToApplication();   // never returns
+  while (1) {}                  // halt if no valid app
+}
+
+static int Boot_SwapFirmware(void) {
+  const OtaSwapHeader *hdr = (const OtaSwapHeader *)STAGING_BASE;
+  if (hdr->magic != SWAP_MAGIC) return 0;         // no staged image
+  if (hdr->size == 0 || hdr->size > FLASH_SIZE) return 0;
+
+  Boot_FlashEraseApplication(hdr->size);           // erase 1 KB sectors
+  // Copy 0x10400 → 0x4000 in 256-byte chunks
+  while (remaining > 0) { Boot_FlashWrite(dst, src, chunk); ... }
+  FlashErase(STAGING_BASE);                        // clear header
+  return 1;
+}</code></pre>
+  <p class="small"><b>Jump</b>: inline assembly — <code>cpsid i; msr msp; bx</code> — because C stack is invalid after MSP switch.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 4: RESULTS                                           -->
+<!-- ============================================================ -->
+
+<!-- SLIDE 16: DELIVERABLES -->
+<section>
+  <h2>Key Deliverables</h2>
+  <div class="cols">
+    <div>
+      <p><b>Application Firmware</b> (30 KB)</p>
+      <table style="font-size:0.6em">
+        <tr><th>Module</th><th>Lines</th></tr>
+        <tr><td>ota.c</td><td>516</td></tr>
+        <tr><td>app_connect.c</td><td>346</td></tr>
+        <tr><td>mqtt.c</td><td>461</td></tr>
+        <tr><td>uart1.c</td><td>597</td></tr>
+        <tr><td>i2c0.c</td><td>203</td></tr>
+        <tr><td>uart.c</td><td>113</td></tr>
+        <tr><td>Others</td><td>337</td></tr>
+        <tr><td><b>Total</b></td><td><b>2,573</b></td></tr>
+      </table>
+    </div>
+    <div>
+      <p><b>Bootloader</b> (3.3 KB)</p>
+      <table style="font-size:0.6em">
+        <tr><th>Module</th><th>Lines</th></tr>
+        <tr><td>bootloader.c</td><td>164</td></tr>
+        <tr><td>boot_flash.c</td><td>76</td></tr>
+        <tr><td>Linker + makefile</td><td>57</td></tr>
+        <tr><td><b>Total</b></td><td><b>297</b></td></tr>
+      </table>
+      <br>
+      <p><b>Tooling</b></p>
+      <ul class="small">
+        <li>merge_bins.ps1 — single-image builder</li>
+        <li>config_user.h — gitignored credentials</li>
+        <li>project0_ccs.cmd — linker script</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 17: FILE INVENTORY -->
+<section>
+  <h2>File Inventory</h2>
+  <table style="font-size:0.65em">
+    <tr><th>Directory</th><th>Files</th><th>Purpose</th></tr>
+    <tr><td><code>Application/</code></td><td>main.c, state.c/h</td><td>Entry point, VTOR, clock init, connect retry loop</td></tr>
+    <tr><td><code>Common/</code></td><td>ota.c/h, app_connect.c/h, mqtt.c/h, app_common.c/h, config.h, data_type.h, delay.h</td><td>Core application logic</td></tr>
+    <tr><td><code>Bootloader/</code></td><td>bootloader.c, boot_flash.c/h, bootloader_ccs.cmd, bootloader_startup.c, makefile</td><td>First-stage bootloader (separate build)</td></tr>
+    <tr><td><code>Drivers/UART/</code></td><td>uart.c/h, uart1.c/h</td><td>Serial communication + ESP8266 AT</td></tr>
+    <tr><td><code>Drivers/I2C/</code></td><td>i2c0.c/h</td><td>I2C0 master driver</td></tr>
+    <tr><td><code>Drivers/ADC/</code></td><td>adc.c/h</td><td>ADC0 single-shot</td></tr>
+    <tr><td><code>Drivers/GPIO/</code></td><td>gpio.c/h</td><td>LEDs + buttons</td></tr>
+    <tr><td><code>Devices/AM2301B/</code></td><td>am2301b.c/h</td><td>Temp/humidity sensor</td></tr>
+    <tr><td><code>Devices/LCD/</code></td><td>lcd.c/h</td><td>Character LCD (16x2)</td></tr>
+    <tr><td><code>Devices/MMA7660/</code></td><td>mma7660.c/h</td><td>Accelerometer (not active)</td></tr>
+    <tr><td>Root</td><td>project0_ccs.cmd, startup_ccs.c, merge_bins.ps1</td><td>Build infrastructure</td></tr>
+  </table>
+  <p class="small"><b>36 .c/.h files &middot; ~3,140 lines &middot; 11 directories</b></p>
+</section>
+
+<!-- SLIDE 18: BUILD -->
+<section>
+  <h2>Build &amp; Flash Procedure</h2>
+  <pre><code class="language-bash"># 1. Build bootloader (standalone makefile)
+cd Bootloader/
+gmake.exe clean && gmake.exe all
+# → bootloader.bin (3,300 bytes)
+
+# 2. Build application (CCS-generated makefile)
+cd Debug/
+gmake.exe clean && gmake.exe all
+# → project0.out
+
+# 3. Generate raw binary
+tiarmobjcopy -O binary project0.out project0.bin
+# → project0.bin (30,148 bytes)
+
+# 4. Merge into single flashable image
+powershell -File ..\merge_bins.ps1
+# → project0_merged.bin (46,532 bytes)
+# → sanity check: app SP = 0x20003460 (valid SRAM)
+
+# 5. Flash via LM Flash Programmer
+#    File: project0_merged.bin  Address: 0x00000000
+#    Erase: Entire Flash → Program → Reset</code></pre>
+</section>
+
+<!-- SLIDE 19: DEMO TELEMETRY -->
+<section>
+  <h2>Demo — Live Telemetry</h2>
+  <p><b>ThingsBoard Dashboard</b> shows real-time sensor data:</p>
+  <pre><code class="language-bash">Topic: v1/devices/me/telemetry
+Payload: {"temperature":26.9,"humidity":39.0,"light":536}
+MQTT PUBLISH OK</code></pre>
+  <br>
+  <table>
+    <tr><th>Sensor</th><th>Range</th><th>Source</th></tr>
+    <tr><td>Temperature</td><td>~25–30 °C</td><td>AM2301B (I2C, 20-bit)</td></tr>
+    <tr><td>Humidity</td><td>~35–55 %</td><td>AM2301B (I2C, 20-bit)</td></tr>
+    <tr><td>Light</td><td>0–4095</td><td>ADC0 (PE3/AIN0, 12-bit)</td></tr>
+  </table>
+  <br>
+  <p class="small">Publishes every 10 seconds. MQTT keepalive: PINGREQ every 15s.</p>
+  <p class="small">Reconnects automatically after 3 consecutive ping failures.</p>
+</section>
+
+<!-- SLIDE 20: DEMO OTA -->
+<section>
+  <h2>Demo — OTA Cycle (End-to-End)</h2>
+  <pre class="ascii">
+  1. Flash project0_merged.bin via LM Flash Programmer (one-time)
+      ↓
+  2. Device boots → connects WiFi → connects MQTT → publishes telemetry
+      ↓
+  3. In ThingsBoard: upload new .bin as OTA package (v1.0.3)
+      ↓
+  4. Device receives metadata (Step A)
+  5. Reports DOWNLOADING (Step B)
+  6. Downloads via MQTT chunks (Step C) — SHA-256 streaming verify
+  7. Writes swap header at 0x10000
+  8. Reports VERIFIED (Step B)
+      ↓
+  9. Reset → Bootloader swaps staging → app (Step D)
+  10. New app runs → reports UPDATED (Step B)
+  11. Version matches → no re-download → loop ends</pre>
+  <p class="small"><b>Full cycle: ~2 minutes</b> (30 KB download at 1 KB/chunk over MQTT).</p>
+</section>
+
+<!-- SLIDE 21: TEST RESULTS -->
+<section>
+  <h2>Test Results (Verified on Hardware)</h2>
+  <p><b>Test 1 — Version Skip (no re-download):</b></p>
+  <pre><code class="language-bash">OTA: new firmware 'project0' 1.0.3 (30148 bytes)
+OTA: checksum a6f8ea11... (SHA256)
+OTA state -> DOWNLOADING
+OTA download: MQTT chunk transfer ready
+OTA: already up to date (1.0.3)
+OTA state -> UPDATED</code></pre>
+  <p><b>Test 2 — Bootloader Swap:</b></p>
+  <pre><code class="language-bash">[BL] bootloader up
+[BL] staging valid, size=0x00007494
+[BL] swap done, new app at 0x4000
+[BL] app valid, jumping
+[BOOT] app @0x4000 running, 16MHz</code></pre>
+  <p><b>Test 3 — Telemetry:</b></p>
+  <pre><code class="language-bash">Topic: v1/devices/me/telemetry
+Payload: {"temperature":26.9,"humidity":39.0,"light":536}
+MQTT PUBLISH OK</code></pre>
+</section>
+
+<!-- SLIDE 22: GIT HISTORY -->
+<section>
+  <h2>Development Timeline (38 Commits)</h2>
+  <pre class="ascii">
+  Phase 1: Driver Foundation (commits 1–15)
+  ├── UART0, UART1, I2C0, ADC0, GPIO, LCD, AM2301B, MMA7660
+  └── Button state machine, LED control
+
+  Phase 2: MQTT + Cloud (commits 16–22)
+  ├── TCP connection via ESP8266 AT
+  ├── MQTT CONNECT/PUBLISH/SUBSCRIBE
+  ├── ThingsBoard device token auth
+  └── Sensor telemetry publishing
+
+  Phase 3: FOTA Pipeline (commits 23–32)
+  ├── Step A: fw_* shared attribute parsing
+  ├── Step B: OTA state reporting
+  ├── Step C: MQTT chunk downloader + SHA-256
+  ├── Step D: Bootloader swap
+  └── Version-skip defense, current_fw_checksum
+
+  Phase 4: Hardening + Docs (commits 33–38)
+  ├── Persistent +IPD state machine
+  ├── merge_bins.ps1, config_user.h
+  ├── FOTA_GUIDE.md, FOTA_SETUP.md
+  ├── Code split (ota.c + app_connect.c)
+  └── FOTA_SLIDES.html, PROJECT_SUMMARY.md</pre>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 5: REFLECTION                                        -->
+<!-- ============================================================ -->
+
+<!-- SLIDE 23: INCIDENTS -->
+<section>
+  <h2>Incidents &amp; Fixes</h2>
+  <table>
+    <tr><th>#</th><th>Incident</th><th>Root Cause</th><th>Fix</th></tr>
+    <tr><td class="red">1</td><td>JSON fields empty</td><td>ESP8266 splits +IPD frames; readline parser stops at \n</td><td>3-mode +IPD state machine (uart1.c)</td></tr>
+    <tr><td class="red">2</td><td>SUBSCRIBE 0x80</td><td>TB rejects v2/fw/response/# subscription</td><td>Removed subscribe; session routing handles it</td></tr>
+    <tr><td class="red">3</td><td>Infinite download loop</td><td>CONFIG_FW_VERSION mismatch with TB</td><td>Sync version + defense-in-depth version check</td></tr>
+    <tr><td class="red">4</td><td>Header erase destroyed image</td><td>Image at 0x10080 overlapped header sector</td><td>Moved image to 0x10400 (sector-aligned)</td></tr>
+    <tr><td class="red">5</td><td>ESP8266 AT FAIL</td><td>Board reset doesn't reset ESP</td><td>Power-cycle + AT+CIPCLOSE on reconnect</td></tr>
+  </table>
+</section>
+
+<!-- SLIDE 24: RESOURCE BUDGET -->
+<section>
+  <h2>Resource Budget</h2>
+  <div class="cols">
+    <div>
+      <p><b>Flash Usage</b></p>
+      <table style="font-size:0.65em">
+        <tr><th>Region</th><th>Size</th><th>% of 256 KB</th></tr>
+        <tr><td>Bootloader</td><td>3,300 B</td><td>1.3%</td></tr>
+        <tr><td>Application</td><td>30,148 B</td><td>11.8%</td></tr>
+        <tr><td>Staging</td><td>~30 KB</td><td>11.7%</td></tr>
+        <tr><td>Free</td><td>~193 KB</td><td>75.2%</td></tr>
+      </table>
+    </div>
+    <div>
+      <p><b>RAM Usage (32 KB SRAM)</b></p>
+      <table style="font-size:0.65em">
+        <tr><th>Buffer</th><th>Size</th></tr>
+        <tr><td>Stack</td><td>2,048 B</td></tr>
+        <tr><td>UART1 RX buffer</td><td>2,048 B</td></tr>
+        <tr><td>MQTT raw buffer</td><td>2,048 B</td></tr>
+        <tr><td>OTA prog buffer</td><td>1,024 B</td></tr>
+        <tr><td>ESP prebuf</td><td>128 B</td></tr>
+        <tr><td>SHA-256 context</td><td>~136 B</td></tr>
+        <tr><td>Globals + .bss</td><td>~500 B</td></tr>
+        <tr><td><b>Total used</b></td><td><b>~7.9 KB</b></td></tr>
+        <tr><td>Free</td><td><b>~24.1 KB</b></td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 25: SECURITY -->
+<section>
+  <h2>Security Considerations</h2>
+  <div class="cols">
+    <div>
+      <p class="green"><b>Implemented</b></p>
+      <ul class="small">
+        <li>SHA-256 integrity verification</li>
+        <li>Version-skip defense (no re-download)</li>
+        <li>Credentials in gitignored config_user.h</li>
+        <li>Application validation before jump</li>
+        <li>Header cleared after swap (no replay)</li>
+      </ul>
+    </div>
+    <div>
+      <p class="red"><b>Not yet implemented</b></p>
+      <ul class="small">
+        <li>TLS encryption (plain MQTT, port 1883)</li>
+        <li>Code signing (SHA-256 only, not authenticated)</li>
+        <li>Encrypted firmware images</li>
+        <li>Rollback on failed boot</li>
+        <li>Secure boot chain</li>
+      </ul>
+    </div>
+  </div>
+  <br>
+  <p class="small"><b>For production:</b> TLS (port 8883) + certificate pinning + code signing is required.</p>
+</section>
+
+<!-- SLIDE 26: LESSONS LEARNED -->
+<section>
+  <h2>Lessons Learned</h2>
+  <div class="cols">
+    <div>
+      <p><b>Embedded Design</b></p>
+      <ul class="small">
+        <li><b>Keep bootloader tiny</b> — 3.3 KB, one job: validate → copy → jump</li>
+        <li><b>Flash layout is a contract</b> — mismatch between build stages → silent corruption</li>
+        <li><b>Sector-aligned addresses</b> — prevent cross-sector erase destroying data</li>
+        <li><b>Streaming crypto</b> — no full-image RAM buffer on 32 KB SRAM</li>
+      </ul>
+      <br>
+      <p><b>Communication</b></p>
+      <ul class="small">
+        <li><b>State machines for unreliable streams</b> — ESP8266 +IPD splits require persistent mode</li>
+        <li><b>TB session routing</b> — chunk responses arrive without subscription</li>
+        <li><b>MQTT keepalive needs polling</b> — 100ms intervals, not blocking sleep</li>
+      </ul>
+    </div>
+    <div>
+      <p><b>Build System</b></p>
+      <ul class="small">
+        <li><b>CCS makefiles are fragile</b> — manual sync of subdir_vars.mk + ORDERED_OBJS</li>
+        <li><b>Use tiarmobjcopy</b> — tiobj2bin post-build fails silently</li>
+        <li><b>Always clean build</b> after makefile changes</li>
+      </ul>
+      <br>
+      <p><b>Memory</b></p>
+      <ul class="small">
+        <li><b>Stack overflow → silent corruption</b> — 256 B stack caused mysterious failures</li>
+        <li><b>Check .map file</b> for stack usage before debugging symptoms</li>
+        <li><b>Static buffers for large data</b> — 2 KB UART/MQTT buffers can't fit on stack</li>
+      </ul>
+      <br>
+      <p><b>Process</b></p>
+      <ul class="small">
+        <li><b>Write docs while building</b> — decisions are fresh, rationale is clear</li>
+        <li><b>Commit small, commit often</b> — 38 commits, each with a clear message</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 27: BEST PRACTICES -->
+<section>
+  <h2>Best Practices Summary</h2>
+  <table>
+    <tr><th>Category</th><th>Practice</th></tr>
+    <tr><td><b>Architecture</b></td><td>Layered design: Drivers → MQTT → OTA → Bootloader. Each layer independently testable.</td></tr>
+    <tr><td><b>Flash Safety</b></td><td>Sector-aligned regions. Header erase never touches image. Atomic "ready" flag (write header last).</td></tr>
+    <tr><td><b>State Machines</b></td><td>Persistent mode across reads for unreliable streams. No local state loss on timeout.</td></tr>
+    <tr><td><b>Error Handling</b></td><td>Retry with backoff (5x CIPSTART, 3x chunk timeout). Reconnect after 3 ping failures. Log every failure.</td></tr>
+    <tr><td><b>Memory</b></td><td>Static allocation for large buffers. SHA-256 streaming. Stack ≥ 2 KB. Check .map file.</td></tr>
+    <tr><td><b>Security</b></td><td>Credentials gitignored. Version-sync defense. SHA-256 verify. No hardcoded secrets.</td></tr>
+    <tr><td><b>Build</b></td><td>Separate bootloader build. merge_bins.ps1 with sanity check. tiarmobjcopy over tiobj2bin.</td></tr>
+    <tr><td><b>Documentation</b></td><td>Write during development. Commit messages as changelog. README/status tracking.</td></tr>
+  </table>
+</section>
+
+<!-- SLIDE 28: FUTURE WORK -->
+<section>
+  <h2>Future Work</h2>
+  <table>
+    <tr><th>Feature</th><th>Description</th><th>Priority</th><th>Complexity</th></tr>
+    <tr><td><b>Rollback</b></td><td>Keep previous image; revert if new image fails to boot</td><td class="red">High</td><td>Medium</td></tr>
+    <tr><td><b>Persistent state</b></td><td>Save pending/valid flag to dedicated flash page (power-loss safe)</td><td class="red">High</td><td>Low</td></tr>
+    <tr><td><b>TLS</b></td><td>MQTT over TLS (port 8883) with certificate pinning</td><td class="orange">Medium</td><td>High</td></tr>
+    <tr><td><b>HTTP fallback</b></td><td>If TB provides fw_url, download via HTTP instead of MQTT chunks</td><td>Low</td><td>Medium</td></tr>
+    <tr><td><b>Delta update</b></td><td>Download only changed sectors (reduce bandwidth)</td><td>Low</td><td>High</td></tr>
+    <tr><td><b>Multi-version</b></td><td>A/B boot selection (2 app slots, pick better one)</td><td>Low</td><td>High</td></tr>
+    <tr><td><b>Code signing</b></td><td>Authenticate firmware images before flashing</td><td class="orange">Medium</td><td>High</td></tr>
+  </table>
+</section>
+
+<!-- SLIDE 29: CONCLUSION -->
+<section>
+  <h2>Conclusion</h2>
+  <br>
+  <p><b>What we built:</b></p>
+  <p class="small">A complete embedded IoT system — from bare-metal UART drivers to cloud-managed firmware updates — in <b>~3,140 lines of C</b> with no external frameworks beyond TivaWare HAL.</p>
+  <br>
+  <p><b>Key achievements:</b></p>
+  <ul class="small">
+    <li>Full FOTA pipeline (Steps A–D) <b>verified on real hardware</b></li>
+    <li>30 KB application + 3.3 KB bootloader = <b>33 KB total</b></li>
+    <li>SHA-256 streaming verification — <b>no full-image RAM buffer</b></li>
+    <li>Persistent +IPD state machine handles <b>all ESP8266 quirks</b></li>
+    <li>5 real incidents found, diagnosed, and <b>documented with fixes</b></li>
+    <li>38 git commits with <b>clear, traceable history</b></li>
+  </ul>
+  <br>
+  <p><b>What remains:</b></p>
+  <p class="small">Production hardening: rollback, persistent state, TLS, code signing.</p>
+</section>
+
+<!-- SLIDE 30: THANK YOU -->
+<section>
+  <h1>Thank You</h1>
+  <br>
+  <p>Embedded IoT FOTA System</p>
+  <p class="small">TM4C123GH6PM + ESP8266 + ThingsBoard Cloud</p>
+  <br>
+  <table style="font-size:0.7em">
+    <tr><td><b>Source code</b></td><td>github.com/MinhDeepZaiZLer/Embedded_Learning_Demo</td></tr>
+    <tr><td><b>Branch</b></td><td>main &middot; 38 commits &middot; v1.0.3</td></tr>
+    <tr><td><b>Documentation</b></td><td>FOTA_GUIDE.md (765 lines) &middot; FOTA_SETUP.md &middot; PROJECT_SUMMARY.md</td></tr>
+    <tr><td><b>Slides</b></td><td>FOTA_SLIDES.html (36 slides) &middot; PROJECT_SLIDES.html (this deck)</td></tr>
+  </table>
+  <br>
+  <p class="tiny">Built with reveal.js &middot; Content from source code audit and hardware test logs</p>
+</section>
+
+</div><!-- /slides -->
+</div><!-- /reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/notes/notes.min.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  showSlideNumber: 'all',
+  controls: true,
+  progress: true,
+  center: true,
+  transition: 'slide',
+  plugins: [RevealHighlight, RevealNotes]
+});
+</script>
+</body>
+</html>
