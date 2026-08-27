@@ -66,13 +66,13 @@ TivaWare HAL — no RTOS, no external MQTT/TLS libraries.
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │                      ThingsBoard Cloud                             │
-│   mqtt.eu.thingsboard.cloud:1883 (plain MQTT, QoS 0/1)           │
+│   mqtt.eu.thingsboard.cloud:1883 (plain MQTT, QoS 0/1)             │
 │                                                                    │
-│   ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐ │
-│   │ OTA Package  │  │ Shared Attrs │  │ Telemetry Dashboard     │ │
-│   │ project0     │  │ fw_version   │  │ temperature / humidity  │ │
-│   │ v1.0.3       │  │ fw_checksum  │  │ / light                 │ │
-│   └──────────────┘  └──────────────┘  └─────────────────────────┘ │
+│   ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐  │
+│   │ OTA Package  │  │ Shared Attrs │  │ Telemetry Dashboard     │  │
+│   │ project0     │  │ fw_version   │  │ temperature / humidity  │  │
+│   │ v1.0.3       │  │ fw_checksum  │  │ / light                 │  │
+│   └──────────────┘  └──────────────┘  └─────────────────────────┘  │
 └─────────────────────────────┬──────────────────────────────────────┘
                               │ WiFi (TCP/MQTT)
 ┌─────────────────────────────┴──────────────────────────────────────┐
@@ -81,18 +81,18 @@ TivaWare HAL — no RTOS, no external MQTT/TLS libraries.
 └─────────────────────────────┬──────────────────────────────────────┘
                               │ UART1 (interrupt-driven, +IPD state machine)
 ┌─────────────────────────────┴──────────────────────────────────────┐
-│  TM4C123GH6PM  (ARM Cortex-M4, 256 KB flash, 32 KB SRAM)          │
+│  TM4C123GH6PM  (ARM Cortex-M4, 256 KB flash, 32 KB SRAM)           │
 │                                                                    │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐          │
-│  │ UART0  │ │ MQTT   │ │ OTA    │ │ Sensor │ │ GPIO   │          │
-│  │ Debug  │ │ Client │ │ FOTA   │ │ AM2301B│ │ LEDs   │          │
-│  │ 115200 │ │ 3.1.1  │ │ Pipeline│ │ ADC   │ │ Buttons│          │
-│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘          │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐            │
+│  │ UART0  │ │ MQTT   │ │ OTA    │ │ Sensor │ │ GPIO   │            │
+│  │ Debug  │ │ Client │ │ FOTA   │ │ AM2301B│ │ LEDs   │            │  
+│  │ 115200 │ │ 3.1.1  │ │ Pipeline│ │ ADC   │ │ Buttons│            │
+│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘            │
 │                                                                    │
-│  ┌───────────────────────────────────────────────────────────┐    │
-│  │ Bootloader @ 0x0000 (3.3 KB)                              │    │
-│  │ Validate staging → Erase app → Copy → Jump to new app     │    │
-│  └───────────────────────────────────────────────────────────┘    │
+│  ┌───────────────────────────────────────────────────────────┐     │
+│  │ Bootloader @ 0x0000 (3.3 KB)                              │     │
+│  │ Validate staging → Erase app → Copy → Jump to new app     │     │
+│  └───────────────────────────────────────────────────────────┘     │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -121,15 +121,15 @@ the header-erase at `0x10000` never touches the staged image.
         │   Validate → Erase → Copy    │
         │   → Jump (inline asm)        │
 0x04000 ├──────────────────────────────┤
-        │   APPLICATION (30 KB)         │  0x4000 – 0xBFFF
-        │   Sensors + MQTT + FOTA       │
-        │   VTOR = 0x4000               │
+        │   APPLICATION (30 KB)        │  0x4000 – 0xBFFF
+        │   Sensors + MQTT + FOTA      │
+        │   VTOR = 0x4000              │
 0x10000 ├──────────────────────────────┤
-        │   STAGING HEADER (1 KB)       │  0x10000 – 0x103FF
-        │   magic + size + SHA-256      │
+        │   STAGING HEADER (1 KB)      │  0x10000 – 0x103FF
+        │   magic + size + SHA-256     │
 0x10400 ├──────────────────────────────┤
-        │   STAGING IMAGE (30 KB)       │  0x10400 – 0x17FFF
-        │   Downloaded firmware          │
+        │   STAGING IMAGE (30 KB)      │  0x10400 – 0x17FFF
+        │   Downloaded firmware        │
         └──────────────────────────────┘
 ```
 
