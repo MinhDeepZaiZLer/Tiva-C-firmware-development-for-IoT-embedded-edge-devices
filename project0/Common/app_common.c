@@ -234,7 +234,16 @@ static void Sha256_Final(Sha256_Ctx *ctx, uint8_t out[32]) {
 // ---------------------------------------------------------------------------
 
 #define OTA_STAGING_BASE 0x00010000u
+#define OTA_IMAGE_BASE   0x00010400u  // sector-aligned: header in 0x10000-0x103FF, image starts 0x10400
 #define OTA_CHUNK_SIZE 1024u
+
+#define OTA_SWAP_MAGIC 0x53574150u  // "SWAP"
+typedef struct {
+  uint32_t magic;
+  uint32_t size;
+  uint8_t  sha256[32];
+  uint8_t  reserved[88];
+} OtaSwapHeader;
 
 static int Sha256_HexNibble(char c) {
   if ((c >= '0') && (c <= '9')) {
@@ -266,6 +275,17 @@ static int App_Ota_DownloadFirmware(void) {
   // session regardless of any subscription, so none is needed.
   UART0_WriteString("OTA download: MQTT chunk transfer ready\r\n");
 
+  // Defense-in-depth: skip download if assigned version already matches
+  // current firmware version — prevents infinite re-download loops.
+  if (meta->version[0] != '\0' &&
+      strcmp(meta->version, CONFIG_FW_VERSION) == 0) {
+    UART0_WriteString("OTA: already up to date (");
+    UART0_WriteString(CONFIG_FW_VERSION);
+    UART0_WriteString(")\r\n");
+    App_Ota_ReportState("UPDATED");
+    return 1;
+  }
+
   if (strlen(meta->checksum) < 64u) {
     UART0_WriteString("OTA download: checksum too short\r\n");
     App_Ota_ReportState("FAILED");
@@ -292,7 +312,7 @@ static int App_Ota_DownloadFirmware(void) {
     uint32_t k;
 
     if ((offset & 0x3FFu) == 0u) { // 1 KB flash sector boundary
-      if (FlashErase(OTA_STAGING_BASE + offset) != 0) {
+      if (FlashErase(OTA_IMAGE_BASE + offset) != 0) {
         UART0_WriteString("OTA download: flash erase FAILED\r\n");
         App_Ota_ReportState("FAILED");
         return 0;
@@ -346,7 +366,7 @@ static int App_Ota_DownloadFirmware(void) {
     for (k = recv; k < prog_len; k++) {
       prog_buf[k] = 0xFFu;
     }
-    if (FlashProgram((uint32_t *)prog_buf, OTA_STAGING_BASE + offset,
+    if (FlashProgram((uint32_t *)prog_buf, OTA_IMAGE_BASE + offset,
                      prog_len) != 0) {
       UART0_WriteString("OTA download: flash program FAILED\r\n");
       App_Ota_ReportState("FAILED");
@@ -366,6 +386,23 @@ static int App_Ota_DownloadFirmware(void) {
 
   Sha256_Final(&sha, digest);
   if (memcmp(digest, expected, 32u) == 0u) {
+    OtaSwapHeader hdr;
+    memset(&hdr, 0xFF, sizeof(hdr));
+    hdr.magic = OTA_SWAP_MAGIC;
+    hdr.size  = meta->size;
+    memcpy(hdr.sha256, digest, 32);
+
+    if (FlashErase(OTA_STAGING_BASE) != 0) {
+      UART0_WriteString("OTA download: header erase FAILED\r\n");
+      App_Ota_ReportState("FAILED");
+      return 0;
+    }
+    if (FlashProgram((uint32_t *)&hdr, OTA_STAGING_BASE,
+                     sizeof(hdr)) != 0) {
+      UART0_WriteString("OTA download: header program FAILED\r\n");
+      App_Ota_ReportState("FAILED");
+      return 0;
+    }
     UART0_WriteString("OTA download: SHA256 OK - image staged\r\n");
     App_Ota_ReportState("VERIFIED");
     return 1;
@@ -466,12 +503,35 @@ const App_OtaMetadataView *App_Ota_GetMetadata(void) { return &ota_metadata; }
 // ---------------------------------------------------------------------------
 
 // Tell ThingsBoard which firmware is currently running (client attributes).
+// Includes a SHA256 checksum of the running image so TB can compare and
+// avoid re-pushing metadata for an already-current device.
+#define APP_BASE_ADDR 0x00004000u
+#define APP_MAX_SIZE  0x0000E000u  // 56 KB upper bound for app region
+
 static void App_Ota_ReportCurrentFirmware(void) {
-  char json[112];
+  char json[256];
+  char cs_hex[65];
+  Sha256_Ctx sha;
+  uint8_t digest[32];
+  uint32_t i;
+
+  Sha256_Init(&sha);
+  for (i = 0u; i < APP_MAX_SIZE; i += 256u) {
+    Sha256_Update(&sha, (const uint8_t *)(APP_BASE_ADDR + i), 256u);
+  }
+  Sha256_Final(&sha, digest);
+  for (i = 0u; i < 32u; i++) {
+    static const char h[] = "0123456789abcdef";
+    cs_hex[i * 2u]     = h[(digest[i] >> 4) & 0x0Fu];
+    cs_hex[i * 2u + 1] = h[digest[i] & 0x0Fu];
+  }
+  cs_hex[64] = '\0';
 
   snprintf(json, sizeof(json),
-           "{\"current_fw_title\":\"%s\",\"current_fw_version\":\"%s\"}",
-           CONFIG_FW_TITLE, CONFIG_FW_VERSION);
+           "{\"current_fw_title\":\"%s\","
+           "\"current_fw_version\":\"%s\","
+           "\"current_fw_checksum\":\"%s\"}",
+           CONFIG_FW_TITLE, CONFIG_FW_VERSION, cs_hex);
   if (Mqtt_Publish("v1/devices/me/attributes", json, 1u)) {
     UART0_WriteString("OTA: reported current firmware\r\n");
   } else {
