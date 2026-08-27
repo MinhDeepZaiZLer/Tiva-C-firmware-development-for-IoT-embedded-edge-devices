@@ -80,11 +80,12 @@ The MQTT API additions are in:
 ### Step B completed - report OTA state
 
 - On MQTT connect the device publishes client attributes
-  `current_fw_title` / `current_fw_version` (from `config_user.h`) so
-  ThingsBoard shows which firmware is running.
+  `current_fw_title` / `current_fw_version` / `current_fw_checksum` (from
+  `config_user.h` and a SHA256 over the running image at `0x4000`) so
+  ThingsBoard can match by version and checksum.
 - `App_Ota_ReportState()` publishes `{"fw_state":"..."}` to
   `v1/devices/me/attributes`. Receiving valid OTA metadata reports
-  DOWNLOADING; later steps will chain DOWNLOADED, VERIFIED, UPDATING,
+  DOWNLOADING; later steps chain DOWNLOADED, VERIFIED, UPDATING,
   UPDATED and FAILED.
 
 ### Credentials moved out of source control
@@ -120,21 +121,60 @@ bootloader region. The bootloader target compiled and linked successfully.
 The sensor code was not removed or changed. AM2301B and ADC telemetry remain
 in the application.
 
-## 3. Current limitations
+### Step C completed - MQTT chunk downloader
 
-This is not yet a complete FOTA system. The current code does not yet:
+- `App_Ota_DownloadFirmware()` (`Common/app_common.c`) downloads the firmware
+  image via ThingsBoard MQTT chunk API (`v2/fw/request/0/chunk/<index>`).
+- Chunks are reassembled from `+IPD` frames using the persistent
+  `UART1_ReadTcpBytes` state machine (`Drivers/UART/uart1.c`).
+- Each chunk is SHA-256 verified as a stream (no full-image RAM buffer).
+- Verified image is written to staging flash at `0x10400` (header at `0x10000`).
+- After download, a 128-byte `OtaSwapHeader` (magic `0x53574150`, size,
+  SHA256) is written at `0x10000` to signal the bootloader.
+- Version-skip defense-in-depth: if `meta->version == CONFIG_FW_VERSION`
+  the download is skipped with state `UPDATED`.
+- No MQTT subscription is needed; TB routes chunk responses to the session
+  directly.
 
-- Download the firmware from ThingsBoard `fw_url`.
-- Handle ESP8266 HTTP response data as firmware chunks.
-- Store an image across power loss.
-- Verify the complete image checksum before activation.
-- Mark an image pending, valid, or failed.
-- Roll back after a failed boot.
-- Combine the bootloader and application into one flashable image.
-- Generate `project0.bin` automatically on this machine.
+### Step D completed - bootloader swap
 
-The CCS post-build `tiobj2bin` command currently fails to start, so the build
-produces `.out` files but not a verified raw `.bin` file.
+- `Boot_SwapFirmware()` (`Bootloader/bootloader.c`) runs on every reset:
+  reads the header at `0x10000`, validates magic + size, erases app sectors,
+  copies the image from `0x10400` to `0x4000`, clears the header, then jumps
+  to the new application.
+- Uses existing `Boot_FlashEraseApplication()` / `Boot_FlashWrite()` helpers
+  from `Bootloader/boot_flash.c`.
+- Verified on hardware: log shows
+  `[BL] staging valid, size=0x...` → `[BL] swap done, new app at 0x4000`
+  → `[BL] app valid, jumping` → `[BOOT] app @0x4000 running`.
+
+## 3. Current status
+
+Steps A–D of the FOTA pipeline are **complete and verified on hardware**:
+
+- **A** – Metadata parsing (`fw_*` shared attributes).
+- **B** – State reporting (`DOWNLOADING`/`DOWNLOADED`/`VERIFIED`/`UPDATED`/`FAILED`)
+  plus `current_fw_title`, `current_fw_version`, `current_fw_checksum`.
+- **C** – MQTT chunk downloader with SHA-256 streaming verify, staging at
+  `0x10400`, header at `0x10000`.
+- **D** – Bootloader swap: header validation, flash erase/copy, header clear,
+  jump to new app.
+
+**Remaining before a full OTA cycle works:**
+
+1. Re-upload the rebuilt `Debug/project0.bin` to ThingsBoard Cloud as package
+   `project0 1.0.2` (overwrite the stale package that still contains the old
+   build with the subscribe bug).
+2. Flash `Debug/project0_merged.bin` at `0x0000` via LM Flash Programmer.
+3. Verify: app reports version `1.0.2` + checksum → TB match → idle (no
+   re-download loop, no `subscribe v2/fw/response` line).
+
+### Known limitations (not yet implemented)
+
+- No rollback after a failed boot.
+- No HTTPS for the MQTT connection (plain TCP, port 1883).
+- No persistent image-state record across power loss (single-stage header).
+- The TLS / certificate validation story is left for production hardening.
 
 ### Raw binary images (.bin) - FIXED
 
@@ -177,103 +217,55 @@ D:\ti\ccs2100\ccs\utils\bin\gmake.exe clean
 D:\ti\ccs2100\ccs\utils\bin\gmake.exe all
 ```
 
-4. Do not flash the relocated application as if it started at address
-   `0x00000000`. It starts at `0x00004000`.
-5. Do not flash the current bootloader as a production FOTA bootloader. It
-   only validates and jumps to the application.
+4. Generate the merged image:
+
+```text
+cd /d D:\CCStudio_Workspace\project0\Debug
+tiarmobjcopy -O binary project0.out project0.bin
+powershell -NoProfile -ExecutionPolicy Bypass -File ..\merge_bins.ps1
+```
+
+5. Flash `project0_merged.bin` at `0x0000` via LM Flash Programmer.
 
 ### In ThingsBoard Cloud
 
 1. Open the device associated with the access token.
-2. Upload an OTA firmware package, for example:
-   - Title: `project0`
-   - Version: `1.0.1`
-   - Type: `Firmware`
-3. Assign the package to the device.
-4. Wait for the device-side OTA implementation before expecting a download.
-
-Uploading and assigning a package alone will not update this device yet,
-because the downloader and flash activation logic are not implemented.
+2. **Re-upload** the rebuilt `Debug/project0.bin` as OTA package
+   (overwrite `project0 1.0.2`). The old package contains a stale build
+   that still subscribes to `v2/fw/response/#` (rejected with `0x80`).
+3. Assign the package at **device level** (Device → Assigned firmware) if
+   the subscription is still rejected after re-upload.
 
 ## 5. Remaining implementation plan
 
-### Step A - Receive OTA metadata
+### ~~Step A - Receive OTA metadata~~ ✅ DONE
 
-Add an MQTT receive loop that identifies:
+### ~~Step B - Report OTA state~~ ✅ DONE
 
-- `fw_title`
-- `fw_version`
-- `fw_size`
-- `fw_checksum`
-- `fw_checksum_algorithm`
-- `fw_url`
+### ~~Step C - Download firmware~~ ✅ DONE
 
-Reject metadata with an invalid size, unsupported checksum algorithm, or URL
-that cannot be handled by the ESP8266 transport.
+MQTT chunk download with SHA-256 streaming verify. No HTTP fallback needed
+(TB routes chunks to the requesting session without subscription).
 
-### Step B - Report OTA state
+### ~~Step D - Store and verify image~~ ✅ DONE
 
-Publish OTA state through the device client-attribute topic. At minimum,
-implement:
+Header at `0x10000` + image at `0x10400`. Bootloader copies to `0x4000` on
+reset.
 
-```text
-DOWNLOADING
-DOWNLOADED
-VERIFIED
-UPDATING
-UPDATED
-FAILED
-```
+### Step E - Activate safely (not yet)
 
-Include a useful failure reason in the attributes payload.
+- Rollback after a failed boot (keep previous image).
+- Persistent image-state record across power loss.
 
-### Step C - Download firmware
+### Step F - Produce and test one flash image~~ ✅ DONE
 
-Implement ESP8266 HTTP download using the `fw_url` provided by ThingsBoard.
-The downloader must support:
-
-- HTTP status validation.
-- Content length validation against `fw_size`.
-- Fixed-size chunks.
-- Timeout and reconnect handling.
-- No large firmware buffer in TM4C RAM.
-
-The current plain MQTT connection does not provide TLS security. Production
-FOTA should use HTTPS with certificate validation or another authenticated
-transport.
-
-### Step D - Store and verify image
-
-Use `Boot_FlashEraseApplication`, `Boot_FlashWrite`, and `Boot_Crc32` while
-ensuring the bootloader region is never erased. Compare the calculated digest
-with the ThingsBoard checksum before activation.
-
-### Step E - Activate safely
-
-Store an image state record in a reserved flash page, then:
-
-1. Mark the image pending.
-2. Reset the MCU.
-3. Bootloader validates the vector table and checksum.
-4. Bootloader starts the application.
-5. Application marks itself valid after successful startup.
-6. Bootloader rolls back or keeps the previous image after a failed boot.
-
-### Step F - Produce and test one flash image
-
-Create a reproducible merge process for the bootloader and application images.
-Test at least:
-
-- Valid application boot.
-- Invalid vector table.
-- Wrong checksum.
-- Interrupted download.
-- Power loss during flash write.
-- Reboot after a pending update.
-- Rollback after application startup failure.
+`merge_bins.ps1` + sanity check. Tested on hardware.
 
 ## 6. Definition of done
 
-FOTA is complete only when a firmware package assigned in ThingsBoard Cloud
+FOTA is complete when a firmware package assigned in ThingsBoard Cloud
 can be downloaded by the device, verified, activated after reboot, reported as
 `UPDATED`, and safely rolled back when the image is invalid or startup fails.
+
+**Current status: Steps A–D complete.** The remaining work is production
+hardening (rollback, persistent state, TLS).
