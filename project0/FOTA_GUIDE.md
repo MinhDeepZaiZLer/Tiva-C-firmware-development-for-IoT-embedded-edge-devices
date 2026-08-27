@@ -1,4 +1,4 @@
-# Hướng dẫn FOTA chi tiết — TM4C123GH6PM + ESP8266 + ThingsBoard Cloud
+# Hướng dẫn FOTA chi tiết — TM4C123GH6PM + ESP8266 + ThingsBoard Cloud (v1.0.3)
 
 > Tài liệu giải thích toàn bộ quá trình triển khai FOTA, kèm chức năng
 > từng hàm code, từng vùng flash. Viết cho người muốn hiểu sâu cả phần
@@ -107,16 +107,16 @@ TM4C123GH6PM có **256 KB flash**. Ta chia thành 3 vùng chính:
 ### Các hằng số liên quan trong code
 
 ```c
-// app_common.c
+// Common/ota.c
 #define OTA_STAGING_BASE  0x00010000u   // начало staging
 #define OTA_IMAGE_BASE    0x00010400u   // image bắt đầu (sau header 1 KB)
 
-// bootloader.c
+// Bootloader/bootloader.c
 #define STAGING_BASE      0x00010000u
-#define IMAGE_BASE        0x00010400u   // phải khớp với app_common.c
+#define IMAGE_BASE        0x00010400u   // phải khớp với ota.c
 #define SWAP_MAGIC        0x53574150u   // "SWAP" — đánh dấu có bản mới
 
-// boot_flash.h
+// Bootloader/boot_flash.h
 #define BOOT_APP_BASE     0x00004000u   // начало vùng app
 #define BOOT_FLASH_END    0x00040000u   // kết thúc flash
 ```
@@ -126,7 +126,7 @@ TM4C123GH6PM có **256 KB flash**. Ta chia thành 3 vùng chính:
 ## 4. Luồng FOTA tổng quan
 
 ```
-TB gán firmware 1.0.2 cho device
+TB gán firmware 1.0.3 cho device
     ↓
 TB push shared attribute: fw_title, fw_version, fw_size, fw_checksum...
     ↓
@@ -154,7 +154,7 @@ TB push shared attribute: fw_title, fw_version, fw_size, fw_checksum...
          → nhảy vào app mới
     ↓
 [STEP B] APP mới báo UPDATED lên TB
-         → so version: "1.0.2" == CONFIG_FW_VERSION → KHÔNG tải lại
+          → so version: "1.0.3" == CONFIG_FW_VERSION → KHÔNG tải lại
          → loop kết thúc
 ```
 
@@ -189,7 +189,7 @@ Ngoài ra, segment tiếp theo đôi khi đến **dạng raw** (không có `+IPD
 4. Theo dõi `remaining-length` (định dạng MQTT) để biết khi nào message
    đủ.
 
-**Gọi ở:** `App_Ota_DownloadFirmware()` trong `app_common.c:315`.
+**Gọi ở:** `App_Ota_DownloadFirmware()` trong `ota.c:315`.
 
 #### (b) `Mqtt_CompletePublish()` — `Common/mqtt.c`
 
@@ -198,7 +198,7 @@ Ngoài ra, segment tiếp theo đôi khi đến **dạng raw** (không có `+IPD
 **Đặc điểm:** xử lý `+IPD` header (bỏ qua), đ剩余-length, tách topic (UTF-8
 length prefix), payload (binary, dùng `payload_len` thay vì null-terminated).
 
-#### (c) `App_Ota_ProcessMessage()` — `Common/app_common.c:379`
+#### (c) `App_Ota_ProcessMessage()` — `Common/ota.c:379`
 
 **Chức năng:** nhận `MqttMessage`, extract các trường `fw_*` từ JSON.
 
@@ -220,13 +220,13 @@ Hàm tìm chuỗi trong **toàn bộ payload** nên cả 2 dạng đều parse �
 MQTT chunk API. Log: `OTA: no fw_url - using MQTT chunk download`.
 
 **Khi nào gọi:** Sau khi nhận PUBLISH trên topic `v1/devices/me/attributes`.
-Được gọi từ `App_Common_MqttPublishLoop()` (main loop).
+Được gọi từ `App_Common_MqttPublishLoop()` (main loop, trong `app_connect.c`).
 
 ---
 
 ### 5.2 Step B — Báo trạng thái OTA
 
-#### (a) `App_Ota_ReportCurrentFirmware()` — `Common/app_common.c:506`
+#### (a) `App_Ota_ReportCurrentFirmware()` — `Common/ota.c:506`
 
 **Chức năng:** publish client attribute lên `v1/devices/me/attributes`:
 
@@ -257,7 +257,7 @@ Sha256_Final(&sha, digest);
 - `APP_MAX_SIZE = 0xE000`: giới hạn trên 56 KB (an toàn cho vùng app ~30 KB).
 - Quét từng block 256 B cho hiệu quả.
 
-#### (b) `App_Ota_ReportState()` — `Common/app_common.c:519`
+#### (b) `App_Ota_ReportState()` — `Common/ota.c:519`
 
 **Chức năng:** publish `{"fw_state":"DOWNLOADING"}` (hoặc các state khác).
 
@@ -332,7 +332,7 @@ Mqtt_RequestFwChunk(0u, offset / OTA_CHUNK_SIZE, OTA_CHUNK_SIZE);
 Subscribe `v2/fw/response/#` bị từ chối (mã `0x80`). Code bỏ subscribe,
 nhờ vào cơ chế route tự động của TB.
 
-#### (c) `App_Ota_DownloadFirmware()` — `Common/app_common.c:261`
+#### (c) `App_Ota_DownloadFirmware()` — `Common/ota.c:261`
 
 **Đây là hàm chính của Step C.** Luồng:
 
@@ -601,6 +601,7 @@ không khớp → push metadata liên tục.
 
 **Giải pháp (2 lớp):**
 1. **Đồng bộ version:** `CONFIG_FW_VERSION = "1.0.2"` (khớp TB).
+   → Sau đó bump lên `1.0.3` khi refactor code.
 2. **Defense-in-depth:** thêm check đầu hàm download:
    ```c
    if (strcmp(meta->version, CONFIG_FW_VERSION) == 0) {
@@ -662,7 +663,7 @@ D:\ti\ccs2100\ccs\utils\bin\gmake.exe all
 # → project0.out (CCS post-build tiobj2bin lỗi → ignore)
 
 tiarmobjcopy -O binary project0.out project0.bin
-# → project0.bin (30252 bytes)
+# → project0.bin (30148 bytes)
 ```
 
 ### Merge + sanity check
@@ -670,7 +671,7 @@ tiarmobjcopy -O binary project0.out project0.bin
 ```bash
 cd D:\CCStudio_Workspace\project0\Debug
 powershell -NoProfile -ExecutionPolicy Bypass -File ..\merge_bins.ps1
-# → project0_merged.bin (~46636 bytes)
+# → project0_merged.bin (~46532 bytes)
 ```
 
 `merge_bins.ps1` làm:
@@ -694,11 +695,11 @@ Dùng **LM Flash Programmer** (không UniFlash):
 ### Test 1 — Version đã khớp (không tải)
 
 ```
-OTA: new firmware 'project0' 1.0.2 (30252 bytes)
+OTA: new firmware 'project0' 1.0.3 (30148 bytes)
 OTA: checksum a6f8ea11... (SHA256)
 OTA state -> DOWNLOADING
 OTA download: MQTT chunk transfer ready
-OTA: already up to date (1.0.2)
+OTA: already up to date (1.0.3)
 OTA state -> UPDATED
 ```
 
@@ -750,8 +751,10 @@ MQTT PUBLISH OK
 |------|---------|
 | `Common/config_user.h` | Credentials (WiFi, TB token) — gitignored |
 | `Common/config.h` | Include `config_user.h`, default fallback |
+| `Common/ota.c/.h` | FOTA pipeline: JSON helpers, SHA256, metadata, download, state reporting, swap header |
+| `Common/app_connect.c/.h` | WiFi/MQTT connect, ESP8266 sequence, MQTT publish loop, sensor display |
+| `Common/app_common.c/.h` | Backward-compat shim (includes ota.h + app_connect.h) |
 | `Common/mqtt.c/.h` | MQTT core: connect, publish, subscribe, parse |
-| `Common/app_common.c/.h` | FOTA pipeline: metadata, download, state, WiFi/MQTT reconnect |
 | `Drivers/UART/uart1.c/.h` | `UART1_ReadTcpBytes` state machine, prebuffer, SEND OK watch |
 | `Bootloader/bootloader.c` | Bootloader: swap + validate + jump |
 | `Bootloader/boot_flash.c/.h` | Flash helpers: erase, write, CRC32 |
