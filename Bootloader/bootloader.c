@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
@@ -8,11 +9,23 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
 #include "driverlib/uart.h"
+#include "driverlib/flash.h"
+#include "boot_flash.h"
 
-#define APP_BASE 0x00004000u
-#define SRAM_BASE 0x20000000u
-#define SRAM_END 0x20008000u
-#define FLASH_END 0x00040000u
+#define APP_BASE       0x00004000u
+#define SRAM_END       0x20008000u
+#define FLASH_END      0x00040000u
+
+#define STAGING_BASE   0x00010000u
+#define IMAGE_BASE     0x00010400u  // sector-aligned: header in 0x10000-0x103FF, image starts 0x10400
+#define SWAP_MAGIC     0x53574150u  // "SWAP"
+
+typedef struct {
+  uint32_t magic;
+  uint32_t size;
+  uint8_t  sha256[32];
+  uint8_t  reserved[88];
+} OtaSwapHeader;
 
 typedef void (*BootEntry)(void);
 
@@ -60,6 +73,49 @@ static int Boot_IsApplicationValid(void) {
   return 1;
 }
 
+static int Boot_SwapFirmware(void) {
+  const OtaSwapHeader *hdr = (const OtaSwapHeader *)STAGING_BASE;
+
+  if (hdr->magic != SWAP_MAGIC) {
+    return 0;
+  }
+  if (hdr->size == 0u || hdr->size > (BOOT_FLASH_END - BOOT_APP_BASE)) {
+    Boot_Print("[BL] staging size bad\r\n");
+    return 0;
+  }
+
+  Boot_Print("[BL] staging valid, size=0x");
+  Boot_PrintHex(hdr->size);
+  Boot_Print("\r\n");
+
+  if (!Boot_FlashEraseApplication(hdr->size)) {
+    Boot_Print("[BL] erase FAILED\r\n");
+    return 0;
+  }
+
+  uint32_t remaining = hdr->size;
+  uint32_t src = IMAGE_BASE;
+  uint32_t dst = BOOT_APP_BASE;
+  while (remaining > 0u) {
+    uint32_t chunk = (remaining > 256u) ? 256u : remaining;
+    if (!Boot_FlashWrite(dst, (const uint8_t *)src, chunk)) {
+      Boot_Print("[BL] program FAILED\r\n");
+      return 0;
+    }
+    src += chunk;
+    dst += chunk;
+    remaining -= chunk;
+  }
+
+  // Clear magic so bootloader won't swap again on next reset.
+  if (FlashErase(STAGING_BASE) != 0) {
+    Boot_Print("[BL] clear staging FAILED\r\n");
+  }
+
+  Boot_Print("[BL] swap done, new app at 0x4000\r\n");
+  return 1;
+}
+
 static void Boot_JumpToApplication(void) {
   uint32_t initial_sp = HWREG(APP_BASE);
   uint32_t reset_handler = HWREG(APP_BASE + 4u);
@@ -86,6 +142,8 @@ static void Boot_JumpToApplication(void) {
 int main(void) {
   Boot_UartInit();
   Boot_Print("[BL] bootloader up\r\n");
+
+  Boot_SwapFirmware();
 
   if (Boot_IsApplicationValid()) {
     Boot_Print("[BL] app valid, jumping\r\n");
